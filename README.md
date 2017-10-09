@@ -1,5 +1,4 @@
 # BlockPy
-
 BlockPy is an attempt to create a python API for a blockchain-based data integrity verifier.
 
 Currently uses python native sockets
@@ -8,12 +7,10 @@ Currently uses python native sockets
 
 These will describe specific files and their functionalities.
 
-### main.py
-
+### Main.py
 Main.py contains functions of the main blockchain
 
 The following are the functionalities
-
 * Connect to PostgreSQL database
 * `username = edrichhans`
 * `password = password`
@@ -48,7 +45,4 @@ sha256 hashing. `hashMe()` works with JSON and text formats.
 
 ## Things to do
 
-* ~~Migrate from sockets to a better p2p library (py2p or pyp2p)~~
-* Broadcast instead of single point
-* Make this into an API
-* Add better validations
+The bottom part starting from the creation of the `nodeBchain` variable is an example of a node adding its own block to the chain.
