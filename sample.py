@@ -1,6 +1,8 @@
 import random
 random.seed(0)
 
+# Create a function to generate exchanges between Alice and Bob.
+
 def makeTransaction(maxValue=3):
     # This will create valid transactions in the range of (1,maxValue)
     sign      = int(random.getrandbits(1))*2 - 1   # This will randomly choose -1 or 1

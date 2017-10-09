@@ -32,6 +32,9 @@ def isValidTxn(txn,state):
     
     return True
 
+# For each block, we want to collect a set of transactions,
+# create a header, hash it, and add it to the chain
+
 def makeBlock(txns,chain):
     parentBlock = chain[-1]
     parentHash  = parentBlock[u'hash']
