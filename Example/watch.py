@@ -1,3 +1,6 @@
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
 class FileModifiedHandler(FileSystemEventHandler):
 
     def __init__(self, path, file_name, callback):

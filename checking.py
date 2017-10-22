@@ -9,7 +9,7 @@ def checkBlockHash(block):
                         block['contents']['blockNumber'])
     return
 
-def checkBlockValidity(block,parent,state):    
+def checkBlockValidity(block,parent):    
     # We want to check the following conditions:
     # - Each of the transactions are valid updates to the system state
     # - Block hash is valid for the block contents
@@ -20,11 +20,11 @@ def checkBlockValidity(block,parent,state):
     blockNumber  = block['contents']['blockNumber']
     
     # Check transaction validity; throw an error if an invalid transaction was found.
-    for txn in block['contents']['txns']:
-        if isValidTxn(txn,state):
-            state = updateState(txn,state)
-        else:
-            raise Exception('Invalid transaction in block %s: %s'%(blockNumber,txn))
+    # for txn in block['contents']['txns']:
+    #     if isValidTxn(txn,state):
+    #         state = updateState(txn,state)
+    #     else:
+    #         raise Exception('Invalid transaction in block %s: %s'%(blockNumber,txn))
 
     checkBlockHash(block) # Check hash integrity; raises error if inaccurate
 
@@ -34,7 +34,8 @@ def checkBlockValidity(block,parent,state):
     if block['contents']['parentHash'] != parentHash:
         raise Exception('Parent hash not accurate at block %s'%blockNumber)
     
-    return state
+    return
+    # return state
 
 
 def checkChain(chain):
@@ -44,7 +45,7 @@ def checkChain(chain):
     #    and that the blocks are linked by their hashes.
     # This returns the state as a dictionary of accounts and balances,
     #   or returns False if an error was detected
-
+    print "checking Chain Validity...."
     
     ## Data input processing: Make sure that our chain is a list of dicts
     if type(chain)==str:
@@ -56,14 +57,14 @@ def checkChain(chain):
     elif type(chain)!=list:
         return False
     
-    state = {}
+    # state = {}
     ## Prime the pump by checking the genesis block
     # We want to check the following conditions:
     # - Each of the transactions are valid updates to the system state
     # - Block hash is valid for the block contents
 
-    for txn in chain[0]['contents']['txns']:
-        state = updateState(txn,state)
+    # for txn in chain[0]['contents']['txns']:
+    #     state = updateState(txn,state)
     checkBlockHash(chain[0])
     parent = chain[0]
     
@@ -71,7 +72,8 @@ def checkChain(chain):
     #    - the reference to the parent block's hash
     #    - the validity of the block number
     for block in chain[1:]:
-        state = checkBlockValidity(block,parent,state)
+        checkBlockValidity(block,parent)
         parent = block
         
-    return state
+    print "Done!"
+    return

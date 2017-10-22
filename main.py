@@ -1,11 +1,10 @@
-import time, json, socket
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+import time, json, socket, hashlib
 from sys import argv, exit
 from collections import OrderedDict
 from json_filemaker import jsonOutput, createTxn
 from json_createblock import blkJSONOutput
 from create_block import makeBlock
+from checking import checkChain, checkBlockValidity
 
 def readChain(finput):
     with open (finput) as f:
@@ -43,6 +42,7 @@ if __name__ == '__main__':
         while (l):
             print l
             txn = json.loads(l)
+            txn['content'] = hashlib.sha256(json.dumps(txn['content'])).hexdigest()
             txnList.append(createTxn(txn['_owner'], txn['_recipient'], txn['content']))
             if len(txnList) >= 5:
                 break
@@ -50,7 +50,9 @@ if __name__ == '__main__':
             l = c.recv(1024)
         print "Done Receiving"
         newBlock = makeBlock(txnList, chain)
+        checkBlockValidity(newBlock, chain[-1])
         chain.append(newBlock)
+        checkChain(chain)
         viewChain(chain)
         txnList = []
         print "Writing to file..."

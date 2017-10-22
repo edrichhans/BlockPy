@@ -3,6 +3,7 @@ import time
 import math
 from collections import OrderedDict
 import hashlib
+from hashMe import hashMe
 
 def makeBlock(finput,chain):
 
@@ -15,7 +16,7 @@ def makeBlock(finput,chain):
 		parentHash  = parentBlock['hash']
 		blockNumber = parentBlock['contents']['blockNumber'] + 1
 		blockContents = {'parentHash':parentHash,'blockNumber':blockNumber,'blockTxn':txns}
-		blockHash = hashlib.sha256(json.dumps(blockContents)).hexdigest()
+		blockHash = hashMe( blockContents )
 		block = {'hash':blockHash,'contents':blockContents}
 		chain.append(block)
 	return chain
@@ -26,16 +27,16 @@ def blkJSONOutput(chain, foutput):
 	with open(foutput,"w") as foutput:
 		json.dump(chain, foutput, indent=4)
 
-# genesisBlockContents = {
-# 	'blockNumber':0,
-# 	'parentHash':None,
-# 	'blockTxn':None
-# }
-# genesisHash = hashlib.sha256(json.dumps(genesisBlockContents)).hexdigest()
-# genesisBlock = {
-# 	'hash':genesisHash,
-# 	'contents':genesisBlockContents
-# }
-# chain = [genesisBlock]
-# blkJSONOutput(makeBlock("sampleoutput.json",chain), "sampleblock.json")
+genesisBlockContents = {
+	'blockNumber':0,
+	'parentHash':None,
+	'blockTxn':None
+}
+genesisHash = hashMe(genesisBlockContents)
+genesisBlock = {
+	'hash':genesisHash,
+	'contents':genesisBlockContents
+}
+chain = [genesisBlock]
+blkJSONOutput(makeBlock("JSON/sampleoutput.json",chain), "JSON/sampleblock.json")
 
