@@ -14,7 +14,7 @@ def makeBlock(finput,chain):
 		parentBlock = chain[-1]
 		parentHash  = parentBlock['hash']
 		blockNumber = parentBlock['contents']['blockNumber'] + 1
-		blockContents = {'blockNumber':blockNumber,'parentHash':parentHash,'txns':txns}
+		blockContents = {'parentHash':parentHash,'blockNumber':blockNumber,'blockTxn':txns}
 		blockHash = hashlib.sha256(json.dumps(blockContents)).hexdigest()
 		block = {'hash':blockHash,'contents':blockContents}
 		chain.append(block)
@@ -26,16 +26,16 @@ def blkJSONOutput(chain, foutput):
 	with open(foutput,"w") as foutput:
 		json.dump(chain, foutput, indent=4)
 
-genesisBlockContents = {
-	'blockNumber':0,
-	'parentHash':None,
-	'blockTxn':None
-}
-genesisHash = hashlib.sha256(json.dumps(genesisBlockContents)).hexdigest()
-genesisBlock = {
-	'hash':genesisHash,
-	'contents':genesisBlockContents
-}
-chain = [genesisBlock]
-blkJSONOutput(makeBlock("sampleoutput.json",chain), "sampleblock.json")
+# genesisBlockContents = {
+# 	'blockNumber':0,
+# 	'parentHash':None,
+# 	'blockTxn':None
+# }
+# genesisHash = hashlib.sha256(json.dumps(genesisBlockContents)).hexdigest()
+# genesisBlock = {
+# 	'hash':genesisHash,
+# 	'contents':genesisBlockContents
+# }
+# chain = [genesisBlock]
+# blkJSONOutput(makeBlock("sampleoutput.json",chain), "sampleblock.json")
 

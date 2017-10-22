@@ -32,7 +32,7 @@ def createTxn(pubkey, recipient, content):
 
 	return txn
 
-jsonOutput(jsonInput("inputJSON.json"), "sampleoutput.json")
+#jsonOutput(jsonInput("inputJSON.json"), "sampleoutput.json")
 
 # with open("inputJSON.json", "r") as i:
 # 	jsonString = i.read()

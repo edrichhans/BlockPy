@@ -41,7 +41,7 @@ def makeBlock(txns,chain):
     blockNumber = parentBlock[u'contents'][u'blockNumber'] + 1
     txnCount    = len(txns)
     blockContents = {u'blockNumber':blockNumber,u'parentHash':parentHash,
-                     u'txnCount':len(txns),'blockTxn':txns}
+                     u'txnCount':len(txns),'txns':txns}
     blockHash = hashMe( blockContents )
     block = {u'hash':blockHash,u'contents':blockContents}
     

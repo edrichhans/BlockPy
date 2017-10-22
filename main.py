@@ -1,94 +1,65 @@
-import json, copy
+import time, json, socket
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+from sys import argv, exit
+from collections import OrderedDict
+from json_filemaker import jsonOutput, createTxn
+from json_createblock import blkJSONOutput
+from create_block import makeBlock
 
-from hashMe import hashMe
-from sample import makeTransaction
-from create_block import updateState, isValidTxn, makeBlock
-from checking import checkBlockHash, checkBlockValidity, checkChain
+def readChain(finput):
+    with open (finput) as f:
+        chainJSON = json.load(f, object_pairs_hook=OrderedDict)
 
-# Now let's create a large set of transactions, then chunk them into blocks.
+    chain = []
 
-txnBuffer = [makeTransaction() for i in range(30)]
+    for blockJSON in chainJSON:
+        parentHash = blockJSON['contents']['parentHash']
+        blockTxn = blockJSON['contents']['blockTxn']
+        blockNumber = blockJSON['contents']['blockNumber']
+        block = {'hash': blockJSON['hash'], 'contents': {'parentHash': parentHash, 'blockTxn': blockTxn, 'blockNumber': blockNumber}}
+        chain.append(block)
 
-# Because the genesis block isn't linked to any prior block,
-# it gets treated a bit differently, and we can arbitrarily set
-# the system state. In our case, we'll create accounts for
-# our two users (Alice and Bob) and give them 50 coins each.
+    return chain
 
-state = {u'Alice':50, u'Bob':50}  # Define the initial state
-genesisBlockTxns = [state]
-genesisBlockContents = {u'blockNumber':0,u'parentHash':None,u'txnCount':1,u'txns':genesisBlockTxns}
-genesisHash = hashMe( genesisBlockContents )
-genesisBlock = {u'hash':genesisHash,u'contents':genesisBlockContents}
-genesisBlockStr = json.dumps(genesisBlock, sort_keys=True)
+def viewChain(chain):
+    for i in chain:
+        print i
 
-# This becomes the first element from which everything else will be linked.
+if __name__ == '__main__':
+    s = socket.socket()
+    s.bind(("localhost",9999))
+    s.listen(5)
+    print "Reading contents of current block..."
+    chain = readChain('./JSON/sampleblock.json')
+    viewChain(chain)
 
-chain = [genesisBlock]
+    while True:
+        c, address = s.accept()
+        print 'Got connection from', address
+        print "Receiving..."
+        l = c.recv(1024)
+        txnList = []
+        while (l):
+            print l
+            txn = json.loads(l)
+            txnList.append(createTxn(txn['_owner'], txn['_recipient'], txn['content']))
+            if len(txnList) >= 5:
+                break
+            print "Receiving..."
+            l = c.recv(1024)
+        print "Done Receiving"
+        newBlock = makeBlock(txnList, chain)
+        chain.append(newBlock)
+        viewChain(chain)
+        txnList = []
+        print "Writing to file..."
+        blkJSONOutput(chain, "JSON/sampleblock.json")
+        c.send('Thank you for connecting')
+        c.close()
 
-# Let's use this to process our transaction buffer into a set of blocks:
 
-blockSizeLimit = 5  # Arbitrary number of transactions per block- 
-               #  this is chosen by the block miner, and can vary between blocks!
 
-while len(txnBuffer) > 0:
-    bufferStartSize = len(txnBuffer)
-    
-    ## Gather a set of valid transactions for inclusion
-    txnList = []
-    while (len(txnBuffer) > 0) & (len(txnList) < blockSizeLimit):
-        newTxn = txnBuffer.pop()
-        validTxn = isValidTxn(newTxn,state) # This will return False if txn is invalid
-        
-        if validTxn:           # If we got a valid state, not 'False'
-            txnList.append(newTxn)
-            state = updateState(newTxn,state)
-        else:
-            print("ignored transaction")
-            sys.stdout.flush()
-            continue  # This was an invalid transaction; ignore it and move on
-        
-    ## Make a block
-    myBlock = makeBlock(txnList,chain)
-    chain.append(myBlock)
 
-# viewing the chain and the current state
 
-print chain[0]
-print chain[1]
-print state
 
-# We can now check the validity of the state:
-
-checkChain(chain)
-
-# And even if we are loading the chain from a text file,
-# e.g. from backup or loading it for the first time,
-# we can check the integrity of the chain and create the current state:
-
-chainAsText = json.dumps(chain,sort_keys=True)
-checkChain(chainAsText)
-
-# We've seen how to verify a copy of the blockchain,
-# and how to bundle transactions into a block.
-# If we recieve a block from somewhere else,
-# verifying it and adding it to our blockchain is easy.
-
-# Let's say that the following code runs on Node A, which mines the block:
-
-nodeBchain = copy.copy(chain)
-nodeBtxns  = [makeTransaction() for i in range(5)]
-newBlock   = makeBlock(nodeBtxns,nodeBchain)
-
-# Now assume that the newBlock is transmitted to our node,
-# and we want to check it and update our state if it is a valid block:
-
-print("Blockchain on Node A is currently %s blocks long"%len(chain))
-
-try:
-    print("New Block Received; checking validity...")
-    state = checkBlockValidity(newBlock,chain[-1],state) # Update the state- this will throw an error if the block is invalid!
-    chain.append(newBlock)
-except:
-    print("Invalid block; ignoring and waiting for the next block...")
-
-print("Blockchain on Node A is now %s blocks long"%len(chain))
