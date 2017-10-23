@@ -1,12 +1,12 @@
-from create_block import updateState, isValidTxn 
+from block import updateState, isValidTxn 
 from hashMe import hashMe
 
 def checkBlockHash(block):
     # Raise an exception if the hash does not match the block contents
     expectedHash = hashMe( block['contents'] )
     if block['hash']!=expectedHash:
-        raise Exception('Hash does not match contents of block %s'%
-                        block['contents']['blockNumber'])
+        raise Exception('Hash does not match contents of block %s. BlockHash: %s. Expected: %s'%
+                        (block['contents']['blockNumber'], block['hash'], expectedHash))
     return
 
 def checkBlockValidity(block,parent):    
@@ -45,7 +45,7 @@ def checkChain(chain):
     #    and that the blocks are linked by their hashes.
     # This returns the state as a dictionary of accounts and balances,
     #   or returns False if an error was detected
-    print "checking Chain Validity...."
+    print 'checking Chain Validity....\n'
     
     ## Data input processing: Make sure that our chain is a list of dicts
     if type(chain)==str:

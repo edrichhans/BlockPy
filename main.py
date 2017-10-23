@@ -1,65 +1,50 @@
-import time, json, socket, hashlib
+import time, json, socket
 from sys import argv, exit
-from collections import OrderedDict
-from json_filemaker import jsonOutput, createTxn
-from json_createblock import blkJSONOutput
-from create_block import makeBlock
+from block import makeBlock, makeTxn
 from checking import checkChain, checkBlockValidity
+from hashMe import hashMe
+from chain import readChain, viewChain, writeChain
 
-def readChain(finput):
-    with open (finput) as f:
-        chainJSON = json.load(f, object_pairs_hook=OrderedDict)
+maxTxns = 1
+blockLocation = 'JSON/sampleblock.json'
 
-    chain = []
-
-    for blockJSON in chainJSON:
-        parentHash = blockJSON['contents']['parentHash']
-        blockTxn = blockJSON['contents']['blockTxn']
-        blockNumber = blockJSON['contents']['blockNumber']
-        block = {'hash': blockJSON['hash'], 'contents': {'parentHash': parentHash, 'blockTxn': blockTxn, 'blockNumber': blockNumber}}
-        chain.append(block)
-
-    return chain
-
-def viewChain(chain):
-    for i in chain:
-        print i
-
-if __name__ == '__main__':
+def main():
     s = socket.socket()
-    s.bind(("localhost",9999))
+    s.bind(('localhost',9999))
     s.listen(5)
-    print "Reading contents of current block..."
-    chain = readChain('./JSON/sampleblock.json')
+
+    print '\nReading contents of current chain...\n'
+    chain = readChain(blockLocation)
     viewChain(chain)
 
     while True:
         c, address = s.accept()
-        print 'Got connection from', address
-        print "Receiving..."
+        print 'Got connection from {0}'.format(address) + '\n'
+        print 'Receiving...\n'
         l = c.recv(1024)
         txnList = []
         while (l):
-            print l
             txn = json.loads(l)
-            txn['content'] = hashlib.sha256(json.dumps(txn['content'])).hexdigest()
-            txnList.append(createTxn(txn['_owner'], txn['_recipient'], txn['content']))
-            if len(txnList) >= 5:
+            txn['content'] = hashMe(json.dumps(txn['content']))
+            txnList.append(makeTxn(txn['_owner'], txn['_recipient'], txn['content']))
+            if len(txnList) >= maxTxns:
                 break
-            print "Receiving..."
+            print 'Receiving...\n'
             l = c.recv(1024)
-        print "Done Receiving"
+        print 'Done Receiving\n'
         newBlock = makeBlock(txnList, chain)
         checkBlockValidity(newBlock, chain[-1])
         chain.append(newBlock)
         checkChain(chain)
         viewChain(chain)
         txnList = []
-        print "Writing to file..."
-        blkJSONOutput(chain, "JSON/sampleblock.json")
+        print 'Writing to file...\n'
+        writeChain(chain, blockLocation)
         c.send('Thank you for connecting')
         c.close()
 
+if __name__ == '__main__':
+    main()
 
 
 

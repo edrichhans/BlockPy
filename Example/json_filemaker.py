@@ -1,8 +1,6 @@
 import json
-import time
-import math
 from collections import OrderedDict
-import hashlib
+from hashMe import hashMe
 
 def jsonInput(finput):
 	txnTable = []
@@ -11,7 +9,7 @@ def jsonInput(finput):
 		data = json.load(f, object_pairs_hook=OrderedDict)
 
 	for senders in data:
-		senders['content'] = hashlib.sha256(json.dumps(senders['content'])).hexdigest()
+		senders['content'] = hashMe(json.dumps(senders['content']))
 		txnTable.append(createTxn(senders['_owner'], senders['_recipient'], senders['content']))
 	
 	return txnTable
