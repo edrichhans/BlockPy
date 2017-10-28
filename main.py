@@ -8,7 +8,7 @@ from chain import readChain, viewChain, writeChain
 # Create Mesh Socket at port 4444
 sock = py2p.MeshSocket('0.0.0.0', 4444)
 maxTxns = 1
-blockLocation = 'JSON/sampleblock.json'
+blockLocation = 'JSON/Chain.json'
 
 def main():
     print '\nReading contents of current chain...\n'
