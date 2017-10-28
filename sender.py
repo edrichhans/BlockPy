@@ -1,22 +1,12 @@
-import socket
-import sys
-import json
+import py2p
 
-s = socket.socket()
-s.connect(("localhost",9999))
+sock = py2p.MeshSocket('0.0.0.0', 4444)
+
+ipaddr = raw_input('Input IP Address of server: ')
+port = input('Input Port: ')
+
+sock.connect(ipaddr, port)
 
 while True:
-	data = raw_input("Enter data:")
-	if data == 'q':
-		s.send('')
-		break
-	try:
-		json.loads(data)
-		s.send(data)
-	except:
-		print "Invalid JSON"
-
-print "Done Sending"
-s.shutdown(socket.SHUT_WR)
-print s.recv(1024)
-s.close()
+	msg = raw_input('Message: ')
+	sock.send(msg)
