@@ -1,20 +1,35 @@
 import json
 from collections import OrderedDict
+from block import makeBlock
+from hashMe import hashMe
 
 def readChain(finput):
-    with open (finput, 'r') as f:
-        chainJSON = json.load(f, object_pairs_hook=OrderedDict)
-
     chain = []
+    try:
+        with open (finput, 'r') as f:
+            chainJSON = json.load(f, object_pairs_hook=OrderedDict)
+        for blockJSON in chainJSON:
+            parentHash = blockJSON['contents']['parentHash']
+            blockTxn = blockJSON['contents']['blockTxn']
+            blockNumber = blockJSON['contents']['blockNumber']
+            block = {'hash': blockJSON['hash'], 'contents': {'parentHash': parentHash, 'blockTxn': blockTxn, 'blockNumber': blockNumber}}
+            chain.append(block)
 
-    for blockJSON in chainJSON:
-        parentHash = blockJSON['contents']['parentHash']
-        blockTxn = blockJSON['contents']['blockTxn']
-        blockNumber = blockJSON['contents']['blockNumber']
-        block = {'hash': blockJSON['hash'], 'contents': {'parentHash': parentHash, 'blockTxn': blockTxn, 'blockNumber': blockNumber}}
-        chain.append(block)
-
-    return chain
+        return chain
+    except:
+        with open(finput, 'w') as f:
+            genesisBlockContents = {
+                'blockNumber':0,
+                'parentHash':None,
+                'blockTxn':None
+            }
+            genesisHash = hashMe(genesisBlockContents)
+            genesisBlock = {
+                'hash':genesisHash,
+                'contents':genesisBlockContents
+            }
+            chain = [genesisBlock]
+            return chain
 
 
 def viewChain(chain):
