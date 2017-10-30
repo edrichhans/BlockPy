@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from collections import OrderedDict
 from block import makeBlock
 from hashMe import hashMe
@@ -11,8 +12,20 @@ def readChain(finput):
         for blockJSON in chainJSON:
             parentHash = blockJSON['contents']['parentHash']
             blockTxn = blockJSON['contents']['blockTxn']
+            txnCount = blockJSON['contents']['txnCount']
             blockNumber = blockJSON['contents']['blockNumber']
-            block = {'hash': blockJSON['hash'], 'contents': {'parentHash': parentHash, 'blockTxn': blockTxn, 'blockNumber': blockNumber}}
+            timestamp = blockJSON['contents']['timestamp']
+            block = {
+                'hash': blockJSON['hash'], 
+                'contents': {
+                    'parentHash': parentHash, 
+                    'txnCount': txnCount,
+                    'blockTxn': blockTxn, 
+                    'blockNumber': blockNumber,
+                    'timestamp': timestamp
+                    #'digital signature': 
+                    }
+                }
             chain.append(block)
 
         return chain
@@ -21,7 +34,9 @@ def readChain(finput):
             genesisBlockContents = {
                 'blockNumber':0,
                 'parentHash':None,
-                'blockTxn':None
+                'txnCount':0,
+                'blockTxn':None,
+                'timestamp': str(date.today())
             }
             genesisHash = hashMe(genesisBlockContents)
             genesisBlock = {

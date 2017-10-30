@@ -1,5 +1,6 @@
 from hashMe import hashMe
 from collections import OrderedDict
+from datetime import time
 
 def updateState(txn, state):
     # Inputs: txn, state: dictionaries keyed with account names, holding numeric values for transfer amount (txn) or account balance (state)
@@ -41,8 +42,13 @@ def makeBlock(txns,chain):
     parentHash  = parentBlock[u'hash']
     blockNumber = parentBlock[u'contents'][u'blockNumber'] + 1
     txnCount    = len(txns)
-    blockContents = {u'blockNumber':blockNumber,u'parentHash':parentHash,
-                     u'blockTxn':hashMe(txns)}
+    blockContents = {
+        u'blockNumber':blockNumber,
+        u'parentHash':parentHash,
+        u'txnCount':txnCount,
+        u'blockTxn':hashMe(txns),
+        u'timestamp':str(date.today())
+        }
     blockHash = hashMe( blockContents )
     block = {u'hash':blockHash,u'contents':blockContents}
     

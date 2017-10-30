@@ -7,7 +7,7 @@ def checkBlockHash(block):
     if block['hash']!=expectedHash:
         raise Exception('Hash does not match contents of block %s. BlockHash: %s. Expected: %s'%
                         (block['contents']['blockNumber'], block['hash'], expectedHash))
-    return
+    return True
 
 def checkBlockValidity(block,parent):    
     # We want to check the following conditions:
@@ -34,7 +34,7 @@ def checkBlockValidity(block,parent):
     if block['contents']['parentHash'] != parentHash:
         raise Exception('Parent hash not accurate at block %s'%blockNumber)
     
-    return
+    return True
     # return state
 
 
@@ -76,4 +76,4 @@ def checkChain(chain):
         parent = block
         
     print "Done!"
-    return
+    return True
