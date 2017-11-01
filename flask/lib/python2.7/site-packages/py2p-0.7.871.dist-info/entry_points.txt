@@ -1,0 +1,4 @@
+
+            [console_scripts]
+            py2p=py2p.__main__:cli
+        

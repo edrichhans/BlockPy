@@ -20,8 +20,12 @@ def main():
 
         txnList = []
         if (msg and msg.packets[1:]):
+            print msg
             packet = msg.packets[1]
-            txn = json.loads(packet)
+            try:
+                txn = json.loads(packet)
+            except:
+                txn = packet
             txn['content'] = hashMe(json.dumps(txn['content']))
             txnList.append(makeTxn(txn['_owner'], txn['_recipient'], txn['content']))
             print 'Done Receiving\n'
