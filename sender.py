@@ -1,12 +1,22 @@
 import py2p
 
-sock = py2p.MeshSocket('0.0.0.0', 4444)
+def connect(ipaddr = None, port = None, id = None):
+	sock = py2p.MeshSocket('0.0.0.0', 4445)
 
-ipaddr = raw_input('Input IP Address of server: ')
-port = input('Input Port: ')
+	ipaddr = raw_input('Input IP Address of server: ') if not ipaddr else ipaddr
+	port = input('Input Port: ') if not port else port
 
-sock.connect(ipaddr, port)
+	sock.connect(ipaddr, port, id)
 
-while True:
-	msg = raw_input('Message: ')
+	return sock
+
+def sender(sock, msg = None):
+	msg = raw_input('Message: ') if not msg else msg
 	sock.send(msg)
+
+def disconnect(sock, id = None):
+	sock.disconnect(id)
+
+if __name__ == '__main__':
+	sock = connect()
+	sender(sock)
