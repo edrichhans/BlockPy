@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Send Transaction</title>
+</head>
+<body>
+    <h1>Send Transaction</h1>
+    <form method="POST" action='/receive'>
+        {{ form.hidden_tag() }}
+        <p>{{ form.senderKey.label }} {{ form.senderKey(size=20) }}</p>
+        <p>{{ form.receiverKey.label }} {{ form.receiverKey(size=20) }}</p>
+        <p>{{ form.txn.label }} {{ form.txn(size=100) }}</p>
+        <input type="submit" value="Send">
+    </form>
+
+    
+</body>
+</html>
