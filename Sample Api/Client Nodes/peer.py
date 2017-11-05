@@ -87,15 +87,15 @@ class PeerSend(Thread):
 	def getPeers(self, peer_addr = []):
 
 		if len(self.peers) == 0:
-			# try:
+			try:
 				#community_ip = socket.create_connection(self.community_ip, 1, (self.ip_addr, self.port))
 				self.ssnd.connect(self.community_ip)
 				self.peers.append(self.community_ip)
 				print "Connected: ", self.community_ip[0], self.community_ip[1]
 				#community_ip.close()
-			# except:
-			#  	print "Community server down"
-			#  	self.ssnd.close()
+			except:
+			 	print "Community server down"
+			 	self.ssnd.close()
 
 		else:
 			for addr in peer_addr:
@@ -135,7 +135,7 @@ class PeerSend(Thread):
 def main(argv):
 	#this is the default ip and port
 	ip_addr = '127.0.0.1'
-	port = 7000
+	port = 6000
 
 	try:
 		opts, args = getopt.getopt(argv, "h:p:", ["hostname=", "port="])

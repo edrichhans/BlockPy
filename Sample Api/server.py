@@ -60,11 +60,7 @@ class PeerSend(Thread):
 		self.peers = []
 		self.ip_addr = ip_addr
 		self.port = port
-		#socket for receiving messages
-		self.ssnd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.ssnd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-		self.ssnd.bind((self.ip_addr, self.port))
+		self.ssnd = None
 
 		print "hostname", self.ip_addr
 		print "port", self.port
@@ -86,16 +82,21 @@ class PeerSend(Thread):
 
 	def getPeers(self, peer_addr = []):
 
+		#socket for receiving messages
+		ssnd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		ssnd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+		ssnd.bind((self.ip_addr, self.port))
+
 		if len(self.peers) == 0:
-			# try:
-				#community_ip = socket.create_connection(self.community_ip, 1, (self.ip_addr, self.port))
-				self.ssnd.connect(self.community_ip)
+			try:
+				ssnd.connect(self.community_ip)
 				self.peers.append(self.community_ip)
 				print "Connected: ", self.community_ip[0], self.community_ip[1]
-				#community_ip.close()
-			# except:
-			#  	print "Community server down"
-			#  	self.ssnd.close()
+				ssnd.close()
+			except:
+				print "Community server down"
+				ssnd.close()
 
 		else:
 			for addr in peer_addr:
@@ -106,27 +107,28 @@ class PeerSend(Thread):
 
 		for peers in self.peers:
 			print peers
-			
+
 		ip = raw_input("IP Address: ")
 		port = input("Port: ")
 
 		if (ip, port) in self.peers:
 
 			message = raw_input("Message: ")
+			#socket for receiving messages
+			ssnd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			ssnd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+			ssnd.bind((self.ip_addr, self.port))
 
 			try:
-				#rcv = socket.create_connection((ip, port), None, (self.ip_addr, self.port))
-				#rcv.sendall(message)
-				self.ssnd.sendall(message)
-				# rcv.shutdown(socket.SHUT_RDWR)
-				# rcv.close()
+				ssnd.connect((ip, port))
+				ssnd.sendall(message)
+				ssnd.close()
 			except Exception as e:
-			 	self.ssnd.close()
+				ssnd.close()
 				print e
 
 		else:
 			print "Peer not recognized"
-
 
 #main code to run when running peer.py
 #include in your input the hostname and the port you want your peer to run in
@@ -135,7 +137,7 @@ class PeerSend(Thread):
 def main(argv):
 	#this is the default ip and port
 	ip_addr = '127.0.0.1'
-	port = 7000
+	port = 5000
 
 	try:
 		opts, args = getopt.getopt(argv, "h:p:", ["hostname=", "port="])
@@ -161,3 +163,53 @@ if __name__ == "__main__":
 
 	sender = PeerSend(ip_addr, port+1)
 	sender.start()
+		
+
+#IGNORE CODE BELOW!!!
+#-------------------------------------------------------------------------------
+# from flask import Flask, redirect, url_for, request, render_template, Response
+# import json
+
+# node = Flask(__name__)
+
+# txns = []
+# peers = []
+
+# @node.route('/')
+# def index():
+# 	return "Blockchain Flask p2p"
+
+# @node.route('/receiveTxn', methods=['POST', 'GET'])
+# def receiveTxn():
+# 	#if request.method == 'POST':
+
+# 	jsondata = request.get_json()
+# 	data = json.loads(jsondata)
+	
+# 	senderKey = data['senderKey']
+# 	receiverKey = data['receiverKey']
+# 	txn = data['txn']
+# 	txns.append([str(senderKey), str(receiverKey), str(txn)])
+# 	return str(txns)
+
+# @node.route('/view')
+# def viewTxns():
+
+# 	return str(txns)
+
+# @node.route('/getPeers')
+# def retPeers():
+# 	return peers
+
+# @node.route('/requestTxn', methods=['POST', 'GET'])
+# def requestTxn():
+# 	if len(txns) > 0:
+# 		returnTxn = txns[0]
+# 		resp = Response(json.dumps(returnTxn), status=200, mimetype='application/json')
+# 		print resp.get_data()
+# 		return resp
+# 	return Response(None, status=400)
+
+# if __name__=='__main__':
+# 	peers.append(['127.0.0.1', 5002])
+# 	node.run('127.0.0.1',5000,True)
