@@ -29,7 +29,9 @@ def readChain(finput):
             chain.append(block)
 
         return chain
-    except:
+    except IOError:
+
+        print "No chain found\n"
         with open(finput, 'w') as f:
             genesisBlockContents = {
                 'blockNumber':0,
@@ -44,6 +46,7 @@ def readChain(finput):
                 'contents':genesisBlockContents
             }
             chain = [genesisBlock]
+            json.dump(chain, f)
             return chain
 
 

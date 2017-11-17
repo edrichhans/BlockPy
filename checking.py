@@ -1,4 +1,3 @@
-from block import updateState, isValidTxn 
 from hashMe import hashMe
 
 def checkBlockHash(block):
