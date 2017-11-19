@@ -155,7 +155,7 @@ class Peer(Thread):
 def main(argv):
 	#this is the default ip and port
 	ip_addr = '127.0.0.1'
-	port = 6000
+	port = 7000
 
 	try:
 		opts, args = getopt.getopt(argv, "h:p:", ["hostname=", "port="])
