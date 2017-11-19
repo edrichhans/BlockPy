@@ -9,17 +9,16 @@ class Peer(Thread):
 
 		self.peers = {}
 		self.ip_addr = ip_addr
-		self.rport = port
-		self.sport = port+1
+		self.port = port
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.srcv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		print "hostname", self.ip_addr
-		print "port", self.rport
-		self.srcv.bind((self.ip_addr, self.rport))
+		print "port", self.port
+		self.srcv.bind((self.ip_addr, self.port))
 		#add self to list of peers
-		self.peers[(self.ip_addr, self.rport)] = self.srcv
+		self.peers[(self.ip_addr, self.port)] = self.srcv
 		
 		Thread(target=self.listening).start()
 		Thread(target=self.sending).start()
@@ -93,7 +92,7 @@ class Peer(Thread):
 			try:
 				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				self.peers[self.community_ip].bind((self.ip_addr, self.rport))
+				self.peers[self.community_ip].bind((self.ip_addr, self.port))
 				self.peers[self.community_ip].connect(self.community_ip)
 				print "Connected: ", self.community_ip[0], self.community_ip[1]
 				#ssnd.close()
@@ -105,7 +104,7 @@ class Peer(Thread):
 			for addr in peer_addr:
 				self.peers[addr] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[addr].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				self.peers[addr].bind((self.ip_addr, self.rport))
+				self.peers[addr].bind((self.ip_addr, self.port))
 				self.peers[addr].connect(addr)
 				print "Connected: ", addr[0], str(addr[1])			
 
