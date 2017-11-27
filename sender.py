@@ -12,11 +12,14 @@ def connect(ipaddr = None, port = None, id = None):
 
 def sender(sock, msg = None):
 	msg = raw_input('Message: ') if not msg else msg
-	sock.send(msg)
+	if msg != '':
+		sock.send(msg)
+	return msg
 
 def disconnect(sock, id = None):
 	sock.disconnect(id)
 
 if __name__ == '__main__':
 	sock = connect()
-	sender(sock)
+	while sender(sock):
+		continue

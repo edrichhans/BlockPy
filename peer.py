@@ -1,5 +1,10 @@
-import json, socket, sys, getopt, select
+import json, socket, sys, getopt, select, time
 from threading import Thread
+from sys import argv, exit
+from block import makeBlock, makeTxn
+from checking import checkChain, checkBlockValidity
+from hashMe import hashMe
+from chain import readChain, viewChain, writeChain
 
 class Peer(Thread):
 
@@ -19,39 +24,68 @@ class Peer(Thread):
 		self.srcv.bind((self.ip_addr, self.port))
 		#add self to list of peers
 		self.peers[(self.ip_addr, self.port)] = self.srcv
-
+		self.maxTxns = 3
+		self.blockLocation = 'JSON/Chain.json'
+		self.chain = readChain(self.blockLocation)
+		viewChain(self.chain)
+		
 		Thread(target=self.listening).start()
 		Thread(target=self.sending).start()
 
 	def listening(self):
-
 		#listen up to 5 other peers
 		self.srcv.listen(5)
 
 		while True:
+			txnList = []
+			while True:
+				read_sockets,write_sockets,error_sockets = select.select(self.peers.values(),[],[],1)
+				for socket in read_sockets:
 
-			read_sockets,write_sockets,error_sockets = select.select(self.peers.values(),[],[],1)
-			for socket in read_sockets:
+					if socket == self.srcv:
+						conn, addr = self.srcv.accept()
+						self.peers[addr] = conn
+						print "\nEstablished connection with: ", addr
 
-				if socket == self.srcv:
-					conn, addr = self.srcv.accept()
-					self.peers[addr] = conn
-					print "\nEstablished connection with: ", addr
+					else:
+						try:
+							message = socket.recv(1024)
 
-				else:
-					try:
-						message = socket.recv(1024)
+							if (message == "Requesting peers sir"):
+								peersRequest(socket.getpeername(0), socket.getpeername(1))
+							# if a message is received
+							elif (message != ""):
+								#try to convert message to json
+								try:
+									txn = json.loads(message)
+								except:
+									txn = packet
+									print "message is not a valid JSON format!!"
+								# hash content
+								txn['content'] = hashMe(json.dumps(txn['content']))
+								# append txn to txnList
+								txnList.append(makeTxn(txn['_owner'], txn['_recipient'], txn['content']))
+								print "\n" + str(socket.getpeername()) + ": " + message
 
-						if (message == "Requesting peers sir"):
-							peersRequest(socket.getpeername(0), socket.getpeername(1))
-						elif (message != ""):
-							print "\n" + str(socket.getpeername()) + ": " + message
-						else:
-							print str(socket.getpeername()), str(socket)
-					except Exception as e:
-						print "Data err", e
-						del self.peers[socket.getpeername()]
-						continue
+							else:
+								print str(socket.getpeername()), str(socket)
+						except Exception as e:
+							print "Data err", e 
+							del self.peers[socket.getpeername()]
+							continue
+				if len(txnList) == self.maxTxns:
+					break
+			# create block
+			newBlock = makeBlock(txnList, self.chain)
+			if (checkBlockValidity(newBlock, chain[-1])):
+				txnList.pop()
+				self.chain.append(newBlock)
+				if (checkChain(self.chain)):
+					viewChain(self.chain)
+					print 'Writing to file...\n'
+					writeChain(self.chain, self.blockLocation)
+
+
 
 	def sending(self):
 
@@ -69,18 +103,13 @@ class Peer(Thread):
 					if (inpeers == 'q'):
 						break
 					else:
-						try:
-							inpeers = inpeers.split(' ')
-							spec_peer.append((inpeers[0], int(inpeers[1])))
-						except:
-							print "Wrong Input: Incomplete Parameters"
+						inpeers = inpeers.split(' ')
+						spec_peer.append((inpeers[0], int(inpeers[1])))
 
 				self.getPeers(spec_peer)
 
 			elif command == "send message":
 				self.sendMessage()
-			elif command == "broadcast message":
-				self.broadcastMessage()
 			else:
 				print "Unknown command"
 
@@ -91,6 +120,8 @@ class Peer(Thread):
 
 	def getPeers(self, peer_addr = []):
 
+		#socket for receiving messages
+
 		if (len(peer_addr) == 0 and len(addr) == 0):
 			try:
 				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -98,69 +129,45 @@ class Peer(Thread):
 				self.peers[self.community_ip].bind((self.ip_addr, self.port))
 				self.peers[self.community_ip].connect(self.community_ip)
 				print "Connected: ", self.community_ip[0], self.community_ip[1]
+				#ssnd.close()
 			except:
 				print "Community server down"
+				#ssnd.close()
 
 		else:
 			for addr in peer_addr:
 				self.peers[addr] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[addr].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				self.peers[addr].bind((self.ip_addr, 0))
+				self.peers[addr].bind((self.ip_addr, self.port))
 				self.peers[addr].connect(addr)
-				print "Connected: ", addr[0], str(addr[1])
+				print "Connected: ", addr[0], str(addr[1])			
 
 	def sendMessage(self):
 
 		for addr in self.peers:
 			print addr
 
-		while True:
-			ip = raw_input("IP Address: ")
-
-			if ip == '':
-				print "Enter IP Address"
-			else:
-				break
-
-		while True:
-			port = input("Port: ")
-
-			if port == '':
-				print "Enter Port"
-			else:
-				break
+		ip = raw_input("IP Address: ")
+		port = input("Port: ")
 
 		if (ip, port) in self.peers:
 
 			message = raw_input("Message: ")
+			#socket for receiving messages
 			ssnd = self.peers[(ip,port)]
 
 			try:
 				ssnd.sendall(message)
+				#ssnd.close()
 			except Exception as e:
+				#ssnd.close()
 				print e
 
 		else:
 			print "Address not recognized"
 
-	def broadcastMessage(self):
-
-		for addr in self.peers:
-			print addr
-
-		message = raw_input("Message: ")
-
-		for addr in self.peers:
-
-			ssnd = self.peers[addr]
-
-			try:
-				ssnd.sendall(message)
-			except Exception as e:
-				print e
-
 	def returnPeerList(self, ip, port):
-
+		
 		ssnd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		ssnd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		ssnd.bind((self.ip_addr, self.sport))
@@ -181,7 +188,7 @@ class Peer(Thread):
 def main(argv):
 	#this is the default ip and port
 	ip_addr = '127.0.0.1'
-	port = 8080
+	port = 6000
 
 	try:
 		opts, args = getopt.getopt(argv, "h:p:", ["hostname=", "port="])
