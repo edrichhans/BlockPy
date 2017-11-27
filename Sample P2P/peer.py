@@ -76,6 +76,8 @@ class Peer(Thread):
 
 			elif command == "send message":
 				self.sendMessage()
+			elif command == "broadcast message":
+				self.broadcastMessage()
 			else:
 				print "Unknown command"
 
@@ -131,6 +133,24 @@ class Peer(Thread):
 
 		else:
 			print "Address not recognized"
+	def broadcastMessage(self):
+
+		for addr in self.peers:
+			print addr
+			
+		message = raw_input("Message: ")
+
+		for addr in self.peers:
+
+			#socket for receiving messages
+			ssnd = self.peers[addr]
+
+			try:
+				ssnd.sendall(message)
+				#ssnd.close()
+			except Exception as e:
+				#ssnd.close()
+				print e
 
 	def returnPeerList(self, ip, port):
 		
