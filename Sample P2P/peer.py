@@ -19,7 +19,7 @@ class Peer(Thread):
 		self.srcv.bind((self.ip_addr, self.port))
 		#add self to list of peers
 		self.peers[(self.ip_addr, self.port)] = self.srcv
-		
+
 		Thread(target=self.listening).start()
 		Thread(target=self.sending).start()
 
@@ -49,7 +49,7 @@ class Peer(Thread):
 						else:
 							print str(socket.getpeername()), str(socket)
 					except Exception as e:
-						print "Data err", e 
+						print "Data err", e
 						del self.peers[socket.getpeername()]
 						continue
 
@@ -69,8 +69,11 @@ class Peer(Thread):
 					if (inpeers == 'q'):
 						break
 					else:
-						inpeers = inpeers.split(' ')
-						spec_peer.append((inpeers[0], int(inpeers[1])))
+						try:
+							inpeers = inpeers.split(' ')
+							spec_peer.append((inpeers[0], int(inpeers[1])))
+						except:
+							print "Wrong Input: Incomplete Parameters"
 
 				self.getPeers(spec_peer)
 
@@ -88,8 +91,6 @@ class Peer(Thread):
 
 	def getPeers(self, peer_addr = []):
 
-		#socket for receiving messages
-
 		if (len(peer_addr) == 0 and len(addr) == 0):
 			try:
 				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -97,63 +98,69 @@ class Peer(Thread):
 				self.peers[self.community_ip].bind((self.ip_addr, self.port))
 				self.peers[self.community_ip].connect(self.community_ip)
 				print "Connected: ", self.community_ip[0], self.community_ip[1]
-				#ssnd.close()
 			except:
 				print "Community server down"
-				#ssnd.close()
 
 		else:
 			for addr in peer_addr:
 				self.peers[addr] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[addr].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				self.peers[addr].bind((self.ip_addr, self.port))
+				self.peers[addr].bind((self.ip_addr, 0))
 				self.peers[addr].connect(addr)
-				print "Connected: ", addr[0], str(addr[1])			
+				print "Connected: ", addr[0], str(addr[1])
 
 	def sendMessage(self):
 
 		for addr in self.peers:
 			print addr
 
-		ip = raw_input("IP Address: ")
-		port = input("Port: ")
+		while True:
+			ip = raw_input("IP Address: ")
+
+			if ip == '':
+				print "Enter IP Address"
+			else:
+				break
+
+		while True:
+			port = input("Port: ")
+
+			if port == '':
+				print "Enter Port"
+			else:
+				break
 
 		if (ip, port) in self.peers:
 
 			message = raw_input("Message: ")
-			#socket for receiving messages
 			ssnd = self.peers[(ip,port)]
 
 			try:
 				ssnd.sendall(message)
-				#ssnd.close()
 			except Exception as e:
-				#ssnd.close()
 				print e
 
 		else:
 			print "Address not recognized"
+
 	def broadcastMessage(self):
 
 		for addr in self.peers:
 			print addr
-			
+
 		message = raw_input("Message: ")
 
 		for addr in self.peers:
 
-			#socket for receiving messages
 			ssnd = self.peers[addr]
 
 			try:
 				ssnd.sendall(message)
-				#ssnd.close()
 			except Exception as e:
-				#ssnd.close()
 				print e
 
 	def returnPeerList(self, ip, port):
-		
+
 		ssnd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		ssnd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		ssnd.bind((self.ip_addr, self.sport))
@@ -192,8 +199,5 @@ def main(argv):
 
 if __name__ == "__main__":
 	ip_addr, port = main(sys.argv[1:])
-	#for now, this code can only send messages or get new peers
-	#while sender.py only listens for new peers to connect to
-	#or new messages to read from existing peers
 
 	node = Peer(ip_addr, port)
