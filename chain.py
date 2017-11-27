@@ -1,7 +1,6 @@
 import json
 from datetime import date
 from collections import OrderedDict
-from block import makeBlock
 from hashMe import hashMe
 
 def readChain(finput):
