@@ -6,11 +6,6 @@ from hashMe import hashMe
 from chain import readChain, viewChain, writeChain, readChainSql, viewChainSql, writeChainSql
 from config import config
 
-# Create Mesh Socket at port 4444
-sock = py2p.MeshSocket('0.0.0.0', 4444)
-maxTxns = 1
-blockLocation = 'JSON/Chain.json'
-
 def connect():
     """ Connect to the PostgreSQL database server """
     conn = None
@@ -51,20 +46,25 @@ def disconnect(conn, cur):
             print('Database connection closed.')
 
 
-def main():
+def create(packet = None):
+    b = packet
+    print "KYAAAA"
     [cur, conn] = connect()
     print '\nReading contents of current chain...\n'
     # readChain(blockLocation)
     chain = readChainSql(cur)
+    msg = None
     # viewChain(chain)
     viewChainSql(chain)
     while True:
-        msg = sock.recv()
+        if not packet:
+            msg = sock.recv()
 
         txnList = []
-        if (msg and msg.packets[1:]):
-            print msg
-            packet = msg.packets[1]
+        if (msg and msg.packets[1:] and not packet) or packet:
+            if not packet:
+                packet = msg.packets[1]
+            print packet
             try:
                 txn = json.loads(packet)
             except:
@@ -76,16 +76,21 @@ def main():
             if (checkBlockValidity(newBlock, chain[-1])):
                 txnList.pop()
                 chain.append(newBlock)
+                print chain
                 if (checkChain(chain)):
                     viewChainSql(chain)
                     print 'Writing to file...\n'
                     writeChainSql(newBlock, conn, cur)
                     # writeChain(chain, blockLocation)
+        if b:
+            break
     disconnect(conn, cur)
 
 if __name__ == '__main__':
-    main()
-
+    # Create Mesh Socket at port 4444
+    sock = py2p.MeshSocket('0.0.0.0', 4444)
+    maxTxns = 1
+    create()
 
 
 

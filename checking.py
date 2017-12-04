@@ -2,6 +2,7 @@ from hashMe import hashMe
 
 def checkBlockHash(block):
     # Raise an exception if the hash does not match the block contents
+    print block['contents']
     expectedHash = hashMe( block['contents'] )
     if block['blockHash']!=expectedHash:
         raise Exception('Hash does not match contents of block %s. BlockHash: %s. Expected: %s'%

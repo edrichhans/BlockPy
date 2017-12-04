@@ -1,6 +1,6 @@
 from hashMe import hashMe
 from collections import OrderedDict, Sequence
-from datetime import date
+from datetime import datetime
 
 # For each block, we want to collect a set of transactions,
 # create a header, hash it, and add it to the chain
@@ -15,7 +15,7 @@ def makeBlock(txns,chain):
     blockNumber = parentBlock[u'contents'][u'blockNumber'] + 1
     txnCount    = len(txns)
     blockTxn    = hashMe(txns)
-    timestamp   = str(date.today())
+    timestamp   = str(datetime.now())
     blockContents = {
         u'blockNumber':blockNumber,
         u'parentHash':parentHash,
