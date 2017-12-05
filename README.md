@@ -2,7 +2,7 @@
 
 BlockPy is an attempt to create a python API for a blockchain-based data integrity verifier.
 
-Currently uses py2p for its meshSocket at port 4444.
+Currently uses python native sockets
 
 ## Files
 
@@ -10,17 +10,21 @@ These will describe specific files and their functionalities.
 
 ### main.py
 
-Main.py is a sample server file
+Main.py contains functions of the main blockchain
 
-The following are the functionalities in order.
+The following are the functionalities
 
-* Connect to meshSocket using port 4444
-* Read chain from JSON/sampleblock.json
-* Wait for transaction
+* Connect to PostgreSQL database
+* `username = edrichhans`
+* `password = password`
+* `create()` accepts a message parameter
 * Create block from transaction
 * Append block to chain
-* Persist chain to JSON/sampleblock.json
-* Loop
+* Persist chain to database
+
+### peer.py
+
+Sample peer file. connects to other peers in the network and runs `create()` from `main.py`
 
 ### sender.py
 
@@ -28,7 +32,7 @@ Sample client file. It accepts IP address and port of server file, and a JSON ra
 
 ### chain.py
 
-Reads, writes and view the chain.
+Reads, writes and view the chain. Persistence to db is here
 
 ### block.py
 
@@ -40,7 +44,7 @@ Checks for validity of chain, block, hashes.
 
 ### hashMe.py
 
-sha256 hashing. hashMe() works with JSON and text formats.
+sha256 hashing. `hashMe()` works with JSON and text formats.
 
 ## Things to do
 

@@ -30,8 +30,10 @@ def connect():
        
         # close the communication with the PostgreSQL
         # cur.close()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+    except psycopg2.DatabaseError as error:
+        print error
+    except Exception as error:
+        print error
     finally:
         return [cur, conn]
 
@@ -48,11 +50,10 @@ def disconnect(conn, cur):
 
 def create(packet = None):
     b = packet
-    print "KYAAAA"
     [cur, conn] = connect()
     print '\nReading contents of current chain...\n'
     # readChain(blockLocation)
-    chain = readChainSql(cur)
+    chain = readChainSql(conn, cur)
     msg = None
     # viewChain(chain)
     viewChainSql(chain)

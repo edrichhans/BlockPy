@@ -1,4 +1,4 @@
-import json, psycopg2
+import json, psycopg2, random, string
 from datetime import date
 from collections import OrderedDict
 from hashMe import hashMe
@@ -48,10 +48,21 @@ def readChain(finput):
             json.dump(chain, f)
             return chain
 
-def readChainSql(cur):
+def readChainSql(conn, cur):
+    checkIfEmpty(conn, cur)
     queryParentSql = 'SELECT * FROM blocks ORDER BY "block_number" asc'
-    cur.execute(queryParentSql)
-    chain = cur.fetchall()
+    chain = []
+    try:
+        cur.execute(queryParentSql)
+        chain = cur.fetchall()
+    except psycopg2.ProgrammingError as error:
+        print error
+    if chain == []:
+        g = createGenesisBlockSql(conn, cur)
+        queryParentSql = 'SELECT * FROM blocks ORDER BY "block_number" asc'
+        cur.execute(queryParentSql)
+        chain = cur.fetchall()
+
     indexes = ['blockNumber', 'blockHash', 'parentHash', 'blockTxn', 'timestamp', 'txnCount']
     newChain = []
     for j in range(len(chain)):
@@ -60,6 +71,18 @@ def readChainSql(cur):
         block['contents'] = contents
         newChain.append(block)
     return newChain
+
+def checkIfEmpty(conn, cur):
+    createTableSql = 'CREATE TABLE IF NOT EXISTS blocks(block_number SERIAL PRIMARY KEY, block_hash VARCHAR(255) NOT NULL, parent_hash VARCHAR(255), block_txn VARCHAR(255), timestamp TIMESTAMP, txn_count INTEGER)'
+    cur.execute(createTableSql)
+    conn.commit()
+
+def createGenesisBlockSql(conn, cur):
+    genesisBlockSql = 'INSERT INTO blocks("block_hash") VALUES (%s)'
+    r = 'b72c1d29818ac5daca49b033af50f3babd94bab802c51d4896d40a82950290ed'
+    cur.execute(genesisBlockSql, (r,))
+    conn.commit()
+    return r
 
 def viewChainSql(chain):
     for block in chain:
