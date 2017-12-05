@@ -1,9 +1,9 @@
-import time, json, py2p, psycopg2
+import time, json, psycopg2
 from sys import argv, exit
 from block import makeBlock, makeTxn
 from checking import checkChain, checkBlockValidity
 from hashMe import hashMe
-from chain import readChain, viewChain, writeChain, readChainSql, viewChainSql, writeChainSql
+from chain import readChainSql, viewChainSql, writeChainSql
 from config import config
 
 def connect():
@@ -27,9 +27,7 @@ def connect():
         # display the PostgreSQL database server version
         db_version = cur.fetchone()
         print(db_version)
-       
-        # close the communication with the PostgreSQL
-        # cur.close()
+
     except psycopg2.DatabaseError as error:
         print error
     except Exception as error:
@@ -52,10 +50,8 @@ def create(packet = None):
     b = packet
     [cur, conn] = connect()
     print '\nReading contents of current chain...\n'
-    # readChain(blockLocation)
     chain = readChainSql(conn, cur)
     msg = None
-    # viewChain(chain)
     viewChainSql(chain)
     while True:
         if not packet:
@@ -86,13 +82,4 @@ def create(packet = None):
         if b:
             break
     disconnect(conn, cur)
-
-if __name__ == '__main__':
-    # Create Mesh Socket at port 4444
-    sock = py2p.MeshSocket('0.0.0.0', 4444)
-    maxTxns = 1
-    create()
-
-
-
 
