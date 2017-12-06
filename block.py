@@ -14,16 +14,16 @@ def makeBlock(txns,chain):
     parentHash  = parentBlock[u'blockHash']
     blockNumber = parentBlock[u'contents'][u'blockNumber'] + 1
     txnCount    = len(txns)
-    blockTxn    = hashMe(txns)
+    blockTxn    = txns
     timestamp   = str(datetime.now())
     blockContents = {
         u'blockNumber':blockNumber,
         u'parentHash':parentHash,
         u'txnCount':txnCount,
-        u'blockTxn':blockTxn,
+        u'blockTxn':str(blockTxn),
         u'timestamp':timestamp
         }
-    blockHash = hashMe( blockContents )
+    blockHash = hashMe(blockContents)
     block = {u'blockHash':blockHash,u'contents':blockContents}
     
     return block

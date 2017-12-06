@@ -1,5 +1,6 @@
 import json, socket, sys, getopt, select
 from threading import Thread
+from main import create
 
 class Peer(Thread):
 
@@ -10,6 +11,9 @@ class Peer(Thread):
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
+		self.received_transaction_from = set()
+		self.messages = []
+		self.max_txns = 3
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -39,19 +43,30 @@ class Peer(Thread):
 					print "\nEstablished connection with: ", addr
 
 				else:
-					try:
-						message = socket.recv(1024)
+					# try:
+					message = socket.recv(1024)
 
-						if (message == "Requesting peers sir"):
-							peersRequest(socket.getpeername(0), socket.getpeername(1))
-						elif (message != ""):
-							print "\n" + str(socket.getpeername()) + ": " + message
-						else:
-							print str(socket.getpeername()), str(socket)
-					except Exception as e:
-						print "Data err", e
-						del self.peers[socket.getpeername()]
-						continue
+					if (message == "Requesting peers sir"):
+						peersRequest(socket.getpeername(0), socket.getpeername(1))
+					elif (message != ""):
+						try:
+							self.received_transaction_from.add(socket.getpeername())
+							self.messages.append(message)
+							if len(self.messages) >= self.max_txns:
+								create(self.messages)
+								self.messages = []
+								self.received_transaction_from = set()
+
+						except:
+							print "MESSAGE NOT WORKING"
+						print create
+						print "\n" + str(socket.getpeername()) + ": " + message
+					else:
+						print str(socket.getpeername()), str(socket)
+					# except Exception as e:
+					# 	print "Data err", e
+					# 	del self.peers[socket.getpeername()]
+					# 	continue
 
 	def sending(self):
 
@@ -81,6 +96,8 @@ class Peer(Thread):
 				self.sendMessage()
 			elif command == "broadcast message":
 				self.broadcastMessage()
+			elif command == "quit":
+				exit()
 			else:
 				print "Unknown command"
 
@@ -199,8 +216,5 @@ def main(argv):
 
 if __name__ == "__main__":
 	ip_addr, port = main(sys.argv[1:])
-	#for now, this code can only send messages or get new peers
-	#while sender.py only listens for new peers to connect to
-	#or new messages to read from existing peers
 
 	node = Peer(ip_addr, port)

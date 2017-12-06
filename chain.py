@@ -1,4 +1,4 @@
-import json, psycopg2, random, string
+import json, psycopg2, random, string, re
 from datetime import date
 from collections import OrderedDict
 from hashMe import hashMe
@@ -28,7 +28,7 @@ def readChainSql(conn, cur):
     return newChain
 
 def checkIfEmpty(conn, cur):
-    createTableSql = 'CREATE TABLE IF NOT EXISTS blocks(block_number SERIAL PRIMARY KEY, block_hash VARCHAR(255) NOT NULL, parent_hash VARCHAR(255), block_txn VARCHAR(255), timestamp TIMESTAMP, txn_count INTEGER)'
+    createTableSql = 'CREATE TABLE IF NOT EXISTS blocks(block_number SERIAL PRIMARY KEY, block_hash TEXT NOT NULL, parent_hash TEXT, block_txn TEXT, timestamp TIMESTAMP, txn_count INTEGER)'
     cur.execute(createTableSql)
     conn.commit()
 
@@ -43,7 +43,7 @@ def viewChainSql(chain):
     for block in chain:
         blockHash = block['blockHash']
         hashLen = len(blockHash)
-        blockTxn = block['contents']['blockTxn']
+        blockTxn = str(block['contents']['blockTxn'])
         blockNumberFormatted = '| BlockNumber: ' + str(block['contents']['blockNumber'])
         print ('=' * (hashLen+4))
         print blockNumberFormatted + ' ' * (hashLen - len(blockNumberFormatted) + 2) + ' |'
@@ -52,7 +52,7 @@ def viewChainSql(chain):
         print '| ' + block['blockHash'] + ' |'
         print '|' + ' ' * (hashLen+2) + '|'
         print '|' + ' ' * ((hashLen/2)-3) + 'blockTxn' + ' ' * ((hashLen/2)-3 ) + '|'
-        print '| ' + (blockTxn if (blockTxn != None) else ' ' * ((hashLen/2)-2) + 'NULL' + ' ' * ((hashLen/2)-2)) + ' |'
+        print '| ' + (re.sub("(.{hashLen})", " |\\1\n| ", blockTxn, 0, re.DOTALL) if (blockTxn != None) else ' ' * ((hashLen/2)-2) + 'NULL' + ' ' * ((hashLen/2)-2)) + ' |'
         print ('=' * (hashLen+4))
         print (' ' * (hashLen/2)) + '  |'
 

@@ -8,7 +8,6 @@ def converter(o):
 def hashMe(msg=""):
     # For convenience, this is a helper function that wraps our hashing algorithm
     if type(msg)!=str: 
-    	print "HASHME", msg
         msg = json.dumps(msg,sort_keys=True, default = converter)  # If we don't sort keys, we can't guarantee repeatability!
         
     if sys.version_info.major == 2:

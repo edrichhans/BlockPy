@@ -14,6 +14,9 @@ class Peer(Thread):
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
+		self.received_transaction_from = set()
+		self.messages = []
+		self.max_txns = 3
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -50,7 +53,13 @@ class Peer(Thread):
 						peersRequest(socket.getpeername(0), socket.getpeername(1))
 					elif (message != ""):
 						try:
-							create(message)
+							self.received_transaction_from.add(socket.getpeername())
+							self.messages.append(message)
+							if len(self.messages) >= self.max_txns:
+								create(self.messages)
+								self.messages = []
+								self.received_transaction_from = set()
+
 						except:
 							print "MESSAGE NOT WORKING"
 						print create
@@ -90,8 +99,6 @@ class Peer(Thread):
 				self.sendMessage()
 			elif command == "broadcast message":
 				self.broadcastMessage()
-			elif command == "quit":
-				exit()
 			else:
 				print "Unknown command"
 

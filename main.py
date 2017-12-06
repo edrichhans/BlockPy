@@ -45,41 +45,27 @@ def disconnect(conn, cur):
             conn.close()
             print('Database connection closed.')
 
-
-def create(packet = None):
-    b = packet
+def create(message):
     [cur, conn] = connect()
     print '\nReading contents of current chain...\n'
     chain = readChainSql(conn, cur)
-    msg = None
     viewChainSql(chain)
-    while True:
-        if not packet:
-            msg = sock.recv()
-
-        txnList = []
-        if (msg and msg.packets[1:] and not packet) or packet:
-            if not packet:
-                packet = msg.packets[1]
-            print packet
-            try:
-                txn = json.loads(packet)
-            except:
-                txn = packet
-            txn['content'] = hashMe(json.dumps(txn['content']))
-            txnList.append(makeTxn(txn['_owner'], txn['_recipient'], txn['content']))
-            print 'Done Receiving\n'
-            newBlock = makeBlock(txnList, chain)
-            if (checkBlockValidity(newBlock, chain[-1])):
-                txnList.pop()
-                chain.append(newBlock)
-                print chain
-                if (checkChain(chain)):
-                    viewChainSql(chain)
-                    print 'Writing to file...\n'
-                    writeChainSql(newBlock, conn, cur)
-                    # writeChain(chain, blockLocation)
-        if b:
-            break
+    txnList = []
+    for txn in message:
+        try:
+            txn = json.loads(txn)
+        except Exception as error:
+            print error
+        txn['content'] = json.dumps(txn['content'])
+        txnList.append(makeTxn(txn['_owner'], txn['_recipient'], txn['content']))
+    newBlock = makeBlock(txnList, chain)
+    print 'newBlock', newBlock['contents']
+    if (checkBlockValidity(newBlock, chain[-1])):
+        chain.append(newBlock)
+        print chain
+        if (checkChain(chain)):
+            viewChainSql(chain)
+            print 'Writing to DB...\n'
+            writeChainSql(newBlock, conn, cur)
     disconnect(conn, cur)
 
