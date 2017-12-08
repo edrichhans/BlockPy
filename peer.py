@@ -1,13 +1,16 @@
 import json, socket, sys, getopt, select
 from threading import Thread
 from main import create
+from Crypto.PublicKey import RSA
+from Crypto import Random
 
 class Peer(Thread):
 
 	community_ip = ('127.0.0.1', 5000)
 
 	def __init__(self, ip_addr, port):
-
+		random_generator = Random.new().read
+		self.key = RSA.generate(1024, random_generator)
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
@@ -117,7 +120,7 @@ class Peer(Thread):
 				self.peers[addr].connect(addr)
 				print "Connected: ", addr[0], str(addr[1])
 
-	def sendMessage(self):
+	def sendMessage(self, message = None, category = None):
 
 		for addr in self.peers:
 			print addr
@@ -139,17 +142,23 @@ class Peer(Thread):
 				break
 
 		if (ip, port) in self.peers:
-
-			message = raw_input("Message: ")
+			pubkey = self.key.publickey().exportKey()
+			pubkey=pubkey.encode('string_escape').replace('\\\\','\\')
+			 #replace with actual public key
+			if message == None:
+				 message = raw_input("content: ")
+			raw_string = "{\"_owner\":" +"\"" + pubkey +"\"," + "\"_recipient\": \"dummy\"," + "\"_category\": \"1\"," + "\"content\":[" + message + ']}'
+				
 			ssnd = self.peers[(ip,port)]
-
+			whitespace = "\r\t"
 			try:
-				ssnd.sendall(message)
+				ssnd.sendall(raw_string)
 			except Exception as e:
 				print e
 
 		else:
 			print "Address not recognized"
+	
 
 	def broadcastMessage(self):
 
@@ -163,7 +172,7 @@ class Peer(Thread):
 			ssnd = self.peers[addr]
 
 			try:
-				ssnd.sendall(message)
+				ssnd.sendall(''.join(message))
 			except Exception as e:
 				print e
 
