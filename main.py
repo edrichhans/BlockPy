@@ -33,7 +33,7 @@ def connect():
     except Exception as error:
         print error
     finally:
-        return [cur, conn]
+        return conn, cur
 
 def disconnect(conn, cur):
     try:
@@ -45,8 +45,7 @@ def disconnect(conn, cur):
             conn.close()
             print('Database connection closed.')
 
-def create(message):
-    [cur, conn] = connect()
+def create(message, conn, cur):
     print '\nReading contents of current chain...\n'
     chain = readChainSql(conn, cur)
     viewChainSql(chain)
@@ -55,7 +54,8 @@ def create(message):
         try:
             txn = json.loads(txn)
         except Exception as error:
-            print error
+            print "JSONLOADSERROR", error
+        print txn
         txn['content'] = json.dumps(txn['content'])
         txnList.append(makeTxn(txn['_owner'], txn['_recipient'], txn['content']))
     newBlock = makeBlock(txnList, chain)
@@ -64,8 +64,11 @@ def create(message):
         chain.append(newBlock)
         print chain
         if (checkChain(chain)):
+            print "Chain is valid!"
             viewChainSql(chain)
-            print 'Writing to DB...\n'
-            writeChainSql(newBlock, conn, cur)
-    disconnect(conn, cur)
+    return newBlock
+
+def addToChain(newBlock, conn, cur):
+    print 'Writing to DB...\n'
+    writeChainSql(newBlock, conn, cur)
 

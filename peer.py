@@ -1,6 +1,6 @@
 import json, socket, sys, getopt, select
 from threading import Thread
-from main import create
+from main import create, addToChain, connect, disconnect
 from Crypto.PublicKey import RSA
 from Crypto import Random
 
@@ -17,6 +17,8 @@ class Peer(Thread):
 		self.received_transaction_from = set()
 		self.messages = []
 		self.max_txns = 3
+		self.conn, self.cur = connect()
+		self.state = 1
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -52,17 +54,18 @@ class Peer(Thread):
 					if (message == "Requesting peers sir"):
 						peersRequest(socket.getpeername(0), socket.getpeername(1))
 					elif (message != ""):
-						try:
-							self.received_transaction_from.add(socket.getpeername())
-							self.messages.append(message)
-							if len(self.messages) >= self.max_txns:
-								create(self.messages)
-								self.messages = []
-								self.received_transaction_from = set()
+						if json.loads(message) and json.loads(message)['_category'] == str(1): # fix this after merge.
+							try:
+								self.received_transaction_from.add(socket.getpeername())
+								self.messages.append(message)
+								if len(self.messages) >= self.max_txns:
+									self.newBlock = create(self.messages, self.conn, self.cur)
+									addToChain(self.newBlock, self.conn, self.cur)
+									self.messages = []
+									self.received_transaction_from = set()
 
-						except:
-							print "MESSAGE NOT WORKING"
-						print create
+							except:
+								print "MESSAGE NOT WORKING"
 						print "\n" + str(socket.getpeername()) + ": " + message
 					else:
 						print str(socket.getpeername()), str(socket)
@@ -99,6 +102,8 @@ class Peer(Thread):
 				self.sendMessage()
 			elif command == "broadcast message":
 				self.broadcastMessage()
+			elif command == 'disconnect':
+				disconnect(self.conn, self.cur)
 			else:
 				print "Unknown command"
 
