@@ -2,9 +2,9 @@ from hashMe import hashMe
 
 def checkBlockHash(block):
     # Raise an exception if the hash does not match the block contents
-    print "BLOCK CONTENTS", block
     expectedHash = hashMe( block['contents'] )
     if block['blockHash']!=expectedHash:
+        print block['contents']
         raise Exception('Hash does not match contents of block %s. BlockHash: %s. Expected: %s'%
                         (block['contents']['blockNumber'], block['blockHash'], expectedHash))
     return True

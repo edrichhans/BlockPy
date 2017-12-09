@@ -48,24 +48,22 @@ def disconnect(conn, cur):
 def create(message, conn, cur):
     print '\nReading contents of current chain...\n'
     chain = readChainSql(conn, cur)
-    viewChainSql(chain)
+    # viewChainSql(chain)
     txnList = []
     for txn in message:
         try:
             txn = json.loads(txn)
         except Exception as error:
             print "JSONLOADSERROR", error
-        print txn
         txn['content'] = json.dumps(txn['content'])
         txnList.append(makeTxn(txn['_owner'], txn['_recipient'], txn['content']))
     newBlock = makeBlock(txnList, chain)
     print 'newBlock', newBlock['contents']
     if (checkBlockValidity(newBlock, chain[-1])):
         chain.append(newBlock)
-        print chain
         if (checkChain(chain)):
             print "Chain is valid!"
-            viewChainSql(chain)
+            # viewChainSql(chain)
     return newBlock
 
 def addToChain(newBlock, conn, cur):

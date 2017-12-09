@@ -1,11 +1,11 @@
 import json, socket, sys, getopt, select
 from threading import Thread
 from main import create, addToChain, connect, disconnect
+from hashMe import hashMe
 from Crypto.PublicKey import RSA
 from Crypto import Random
 
 class Peer(Thread):
-
 	community_ip = ('127.0.0.1', 5000)
 
 	def __init__(self, ip_addr, port):
@@ -14,11 +14,10 @@ class Peer(Thread):
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
-		self.received_transaction_from = set()
+		self.received_transaction_from = {}
 		self.messages = []
-		self.max_txns = 3
+		self.max_txns = 2
 		self.conn, self.cur = connect()
-		self.state = 1
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -33,12 +32,10 @@ class Peer(Thread):
 		Thread(target=self.sending).start()
 
 	def listening(self):
-
 		#listen up to 5 other peers
 		self.srcv.listen(5)
 
 		while True:
-
 			read_sockets,write_sockets,error_sockets = select.select(self.peers.values(),[],[],1)
 			for socket in read_sockets:
 
@@ -49,24 +46,58 @@ class Peer(Thread):
 
 				else:
 					# try:
-					message = socket.recv(1024)
+					message = socket.recv(4096)
 
 					if (message == "Requesting peers sir"):
 						peersRequest(socket.getpeername(0), socket.getpeername(1))
 					elif (message != ""):
-						if json.loads(message) and json.loads(message)['_category'] == str(1): # fix this after merge.
-							try:
-								self.received_transaction_from.add(socket.getpeername())
+						# 1: waiting for transaction 		2: waiting for verifyBlock Phase
+						# 3: waiting for signedBlock Phase	4: waiting for distBlockchain
+						if json.loads(message):
+							json_message = json.loads(message)
+							print "\n" + str(socket.getpeername()) + ": " + message
+
+							category = str(json_message['_category'])
+							if category == str(1):	#waiting for transaction
+								# try:
+								owner = json_message['_owner']
+								self.received_transaction_from[socket.getpeername()] = owner
 								self.messages.append(message)
 								if len(self.messages) >= self.max_txns:
 									self.newBlock = create(self.messages, self.conn, self.cur)
+									for peer in self.received_transaction_from:
+										self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
+										print 'Block sent to: ', str(peer[0]), str(peer[1])
+								# except Exception as e:
+								# 	print "SEND ERROR: ", e
+
+							elif category == str(2):	# verifying block
+								peer = socket.getpeername()
+								block = json.loads(json.loads(message)['content'])
+								fingerprint = hashMe(block).encode('utf-8')
+								signature = self.key.sign(fingerprint, '')
+								self.sendMessage(peer[0], peer[1], signature[0], 3)
+								print 'fingerprint: ', fingerprint
+								print 'Block: ', block
+								print 'sent to:', peer[0], peer[1]
+
+							elif category == str(3):	#waiting for signedBlock
+								# proof here
+								peer = socket.getpeername()
+								if peer in self.received_transaction_from:
+									publickey = RSA.importKey(self.received_transaction_from[peer])
+									if publickey.verify(hashMe(self.newBlock).encode('utf-8'), (json_message['content'],)):
+										del self.received_transaction_from[peer]
+										print 'Block signature verified: ', hashMe(self.newBlock)
+									else:
+										print 'Not verified! ', hashMe(self.newBlock)
+										print 'Block: ', self.newBlock
+								else:
+									print 'Peer is not in received transactions!'
+								if len(self.received_transaction_from) == 0:
 									addToChain(self.newBlock, self.conn, self.cur)
 									self.messages = []
-									self.received_transaction_from = set()
-
-							except:
-								print "MESSAGE NOT WORKING"
-						print "\n" + str(socket.getpeername()) + ": " + message
+									self.received_transaction_from = {}
 					else:
 						print str(socket.getpeername()), str(socket)
 					# except Exception as e:
@@ -75,7 +106,6 @@ class Peer(Thread):
 					# 	continue
 
 	def sending(self):
-
 		while True:
 			command = raw_input("Enter command: ")
 
@@ -113,7 +143,6 @@ class Peer(Thread):
 			self.peers[conn].close()
 
 	def getPeers(self, peer_addr = []):
-
 		if (len(peer_addr) == 0 and len(addr) == 0):
 			try:
 				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -132,37 +161,33 @@ class Peer(Thread):
 				self.peers[addr].connect(addr)
 				print "Connected: ", addr[0], str(addr[1])
 
-	def sendMessage(self, message = None, category = None):
-
+	def sendMessage(self, ip=None, port=None, message=None, category=None):
 		for addr in self.peers:
 			print addr
 
-		while True:
+		while not ip or ip == '':
 			ip = raw_input("IP Address: ")
 
-			if ip == '':
-				print "Enter IP Address"
-			else:
-				break
-
-		while True:
-			port = input("Port: ")
-
-			if port == '':
-				print "Enter Port"
-			else:
-				break
+		while not port or port == '':
+			port = raw_input("Port: ")
+			try:
+				port = int(port)
+			except Exception as e:
+				port = None
+				print e
 
 		if (ip, port) in self.peers:
 			pubkey = self.key.publickey().exportKey()
-			pubkey=pubkey.encode('string_escape').replace('\\\\','\\')
+			# pubkey = pubkey.encode('string_escape').replace('\\\\','\\')
 			 #replace with actual public key
-			if message == None:
-				 message = raw_input("content: ")
-			raw_string = "{\"_owner\":" +"\"" + pubkey +"\"," + "\"_recipient\": \"dummy\"," + "\"_category\": \"1\"," + "\"content\":[" + message + ']}'
+			if not message:
+				message = raw_input("content: ")
+			if not category:
+				category = raw_input("category: ")
+			packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
+			raw_string = json.dumps(packet)
 				
 			ssnd = self.peers[(ip,port)]
-			whitespace = "\r\t"
 			try:
 				ssnd.sendall(raw_string)
 			except Exception as e:
@@ -170,10 +195,8 @@ class Peer(Thread):
 
 		else:
 			print "Address not recognized"
-	
 
 	def broadcastMessage(self):
-
 		for addr in self.peers:
 			print addr
 
@@ -189,7 +212,6 @@ class Peer(Thread):
 				print e
 
 	def returnPeerList(self, ip, port):
-
 		ssnd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		ssnd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		ssnd.bind((self.ip_addr, self.sport))
@@ -210,7 +232,7 @@ class Peer(Thread):
 def main(argv):
 	#this is the default ip and port
 	ip_addr = '127.0.0.1'
-	port = 6000
+	port = 8080
 
 	try:
 		opts, args = getopt.getopt(argv, "h:p:", ["hostname=", "port="])

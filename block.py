@@ -1,3 +1,4 @@
+import json
 from hashMe import hashMe
 from collections import OrderedDict, Sequence
 from datetime import datetime
@@ -6,9 +7,7 @@ from datetime import datetime
 # create a header, hash it, and add it to the chain
 
 def makeBlock(txns,chain):
-
-    if not isinstance(txns, Sequence) and isinstance(txns, basestring):
-        txns = [str(txns)]
+    print txns
 
     parentBlock = chain[-1]
     parentHash  = parentBlock[u'blockHash']
@@ -20,7 +19,7 @@ def makeBlock(txns,chain):
         u'blockNumber':blockNumber,
         u'parentHash':parentHash,
         u'txnCount':txnCount,
-        u'blockTxn':str(blockTxn),
+        u'blockTxn':json.dumps(blockTxn),
         u'timestamp':timestamp
         }
     blockHash = hashMe(blockContents)
@@ -29,9 +28,5 @@ def makeBlock(txns,chain):
     return block
 
 def makeTxn(pubkey, recipient, content):
-    txn = OrderedDict()
-    txn['_owner'] = pubkey
-    txn['_recipient'] = recipient
-    txn['content'] = content
-
+    txn = {u'_owner': pubkey, u'_recipient': recipient, u'_content': content}
     return txn
