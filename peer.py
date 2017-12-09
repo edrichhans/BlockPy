@@ -117,7 +117,7 @@ class Peer(Thread):
 									self.received_transaction_from = {}
 
 									# get next miner and broadcast
-									self.miner = max(self.potential_miners)
+									self.miner = min(self.potential_miners)
 									self.broadcastMessage(self.miner, 5)
 									print 'Current miner is set to: ', self.miner
 
