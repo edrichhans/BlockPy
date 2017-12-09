@@ -4,6 +4,7 @@ from main import create, addToChain, connect, disconnect
 from hashMe import hashMe
 from Crypto.PublicKey import RSA
 from Crypto import Random
+from uuid import uuid1
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
@@ -18,6 +19,8 @@ class Peer(Thread):
 		self.messages = []
 		self.max_txns = 2
 		self.conn, self.cur = connect()
+		self.potential_miners = {}
+		self.miner = None
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -59,45 +62,68 @@ class Peer(Thread):
 
 							category = str(json_message['_category'])
 							if category == str(1):	#waiting for transaction
-								# try:
-								owner = json_message['_owner']
-								self.received_transaction_from[socket.getpeername()] = owner
-								self.messages.append(message)
-								if len(self.messages) >= self.max_txns:
-									self.newBlock = create(self.messages, self.conn, self.cur)
-									for peer in self.received_transaction_from:
-										self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
-										print 'Block sent to: ', str(peer[0]), str(peer[1])
-								# except Exception as e:
-								# 	print "SEND ERROR: ", e
+								try:
+									owner = json_message['_owner']
+									self.received_transaction_from[socket.getpeername()] = owner
+									self.messages.append(message)
+									if len(self.messages) >= self.max_txns:
+										self.newBlock = create(self.messages, self.conn, self.cur)
+										for peer in self.received_transaction_from:
+											self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
+											print 'Block sent to: ', str(peer[0]), str(peer[1])
+								except Exception as e:
+									print "SEND ERROR: ", e
 
 							elif category == str(2):	# verifying block
+								# generate nonce
+								nonce = uuid1().hex
+								# get peer address
 								peer = socket.getpeername()
+								# get block
 								block = json.loads(json.loads(message)['content'])
+								# generate fingerprint
 								fingerprint = hashMe(block).encode('utf-8')
+								# generate signature
 								signature = self.key.sign(fingerprint, '')
-								self.sendMessage(peer[0], peer[1], signature[0], 3)
-								print 'fingerprint: ', fingerprint
-								print 'Block: ', block
-								print 'sent to:', peer[0], peer[1]
+								# send message
+								self.sendMessage(peer[0], peer[1], signature + (nonce,), 3)
+								print 'Block sent to: ', peer[0], peer[1]
 
 							elif category == str(3):	#waiting for signedBlock
 								# proof here
 								peer = socket.getpeername()
 								if peer in self.received_transaction_from:
 									publickey = RSA.importKey(self.received_transaction_from[peer])
-									if publickey.verify(hashMe(self.newBlock).encode('utf-8'), (json_message['content'],)):
+									if publickey.verify(hashMe(self.newBlock).encode('utf-8'), (json_message['content'][0],)):
+										# parse values
+										raw_pubkey = self.received_transaction_from[peer].replace('-----BEGIN PUBLIC KEY-----', '').replace('\n', '').replace('-----END PUBLIC KEY-----', '')
+										p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
+										nonce = json_message['content'][1]
+										# get the difference of
+										self.potential_miners[peer] = abs(int(self.newBlock['blockHash']+nonce, 36) - int(p[:96], 36))
+										print self.potential_miners
+
 										del self.received_transaction_from[peer]
 										print 'Block signature verified: ', hashMe(self.newBlock)
 									else:
-										print 'Not verified! ', hashMe(self.newBlock)
-										print 'Block: ', self.newBlock
+										print 'Block signature not verified!'
 								else:
 									print 'Peer is not in received transactions!'
+
+								# if all blocks are verified
 								if len(self.received_transaction_from) == 0:
 									addToChain(self.newBlock, self.conn, self.cur)
 									self.messages = []
 									self.received_transaction_from = {}
+
+									# get next miner and broadcast
+									self.miner = max(self.potential_miners)
+									self.broadcastMessage(self.miner, 5)
+									print 'Current miner is set to: ', self.miner
+
+							elif category == str(5):
+								self.miner = json_message['content']
+								print 'Current miner is set to: ', self.miner
 					else:
 						print str(socket.getpeername()), str(socket)
 					# except Exception as e:
@@ -196,18 +222,23 @@ class Peer(Thread):
 		else:
 			print "Address not recognized"
 
-	def broadcastMessage(self):
+	def broadcastMessage(self, message=None, category=None):
 		for addr in self.peers:
 			print addr
 
-		message = raw_input("Message: ")
+		pubkey = self.key.publickey().exportKey()
+		if not message:
+			message = raw_input("Message: ")
 
+		if not category:
+			category = raw_input("category: ")
+
+		packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
+		raw_string = json.dumps(packet)
 		for addr in self.peers:
-
 			ssnd = self.peers[addr]
-
 			try:
-				ssnd.sendall(''.join(message))
+				ssnd.sendall(raw_string)
 			except Exception as e:
 				print e
 
@@ -232,7 +263,7 @@ class Peer(Thread):
 def main(argv):
 	#this is the default ip and port
 	ip_addr = '127.0.0.1'
-	port = 8080
+	port = 8000
 
 	try:
 		opts, args = getopt.getopt(argv, "h:p:", ["hostname=", "port="])

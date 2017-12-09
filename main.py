@@ -14,14 +14,14 @@ def connect():
         params = config()
  
         # connect to the PostgreSQL server
-        print('Connecting to the PostgreSQL database...')
+        print 'Connecting to the PostgreSQL database...'
         conn = psycopg2.connect(**params)
  
         # create a cursor
         cur = conn.cursor()
         
         # execute a statement
-        print('PostgreSQL database version:')
+        print 'PostgreSQL database version:'
         cur.execute('SELECT version()')
  
         # display the PostgreSQL database server version
@@ -43,7 +43,7 @@ def disconnect(conn, cur):
     finally:
         if conn is not None:
             conn.close()
-            print('Database connection closed.')
+            print 'Database connection closed.'
 
 def create(message, conn, cur):
     print '\nReading contents of current chain...\n'
