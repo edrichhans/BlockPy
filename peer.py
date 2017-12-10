@@ -62,64 +62,13 @@ class Peer(Thread):
 
 							category = str(json_message['_category'])
 							if category == str(1):	#waiting for transaction
-								try:
-									owner = json_message['_owner']
-									self.received_transaction_from[socket.getpeername()] = owner
-									self.messages.append(message)
-									if len(self.messages) >= self.max_txns:
-										self.newBlock = create(self.messages, self.conn, self.cur)
-										for peer in self.received_transaction_from:
-											self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
-											print 'Block sent to: ', str(peer[0]), str(peer[1])
-								except Exception as e:
-									print "SEND ERROR: ", e
+								self.waitForTxn(json_message, socket, message)
 
 							elif category == str(2):	# verifying block
-								# generate nonce
-								nonce = uuid1().hex
-								# get peer address
-								peer = socket.getpeername()
-								# get block
-								block = json.loads(json.loads(message)['content'])
-								# generate fingerprint
-								fingerprint = hashMe(block).encode('utf-8')
-								# generate signature
-								signature = self.key.sign(fingerprint, '')
-								# send message
-								self.sendMessage(peer[0], peer[1], signature + (nonce,), 3)
-								print 'Block sent to: ', peer[0], peer[1]
+								self.verifyBlock(socket, message)
 
 							elif category == str(3):	#waiting for signedBlock
-								# proof here
-								peer = socket.getpeername()
-								if peer in self.received_transaction_from:
-									publickey = RSA.importKey(self.received_transaction_from[peer])
-									if publickey.verify(hashMe(self.newBlock).encode('utf-8'), (json_message['content'][0],)):
-										# parse values
-										raw_pubkey = self.received_transaction_from[peer].replace('-----BEGIN PUBLIC KEY-----', '').replace('\n', '').replace('-----END PUBLIC KEY-----', '')
-										p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
-										nonce = json_message['content'][1]
-										# get the difference of
-										self.potential_miners[peer] = abs(int(self.newBlock['blockHash']+nonce, 36) - int(p[:96], 36))
-										print self.potential_miners
-
-										del self.received_transaction_from[peer]
-										print 'Block signature verified: ', hashMe(self.newBlock)
-									else:
-										print 'Block signature not verified!'
-								else:
-									print 'Peer is not in received transactions!'
-
-								# if all blocks are verified
-								if len(self.received_transaction_from) == 0:
-									addToChain(self.newBlock, self.conn, self.cur)
-									self.messages = []
-									self.received_transaction_from = {}
-
-									# get next miner and broadcast
-									self.miner = min(self.potential_miners)
-									self.broadcastMessage(self.miner, 5)
-									print 'Current miner is set to: ', self.miner
+								self.waitForSignedBlock(socket, json_message)
 
 							elif category == str(5):
 								self.miner = json_message['content']
@@ -130,6 +79,66 @@ class Peer(Thread):
 					# 	print "Data err", e
 					# 	del self.peers[socket.getpeername()]
 					# 	continue
+
+	def waitForTxn(self, json_message, socket, message):
+		try:
+			owner = json_message['_owner']
+			self.received_transaction_from[socket.getpeername()] = owner
+			self.messages.append(message)
+			if len(self.messages) >= self.max_txns:
+				self.newBlock = create(self.messages, self.conn, self.cur)
+				for peer in self.received_transaction_from:
+					self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
+					print 'Block sent to: ', str(peer[0]), str(peer[1])
+		except Exception as e:
+			print "SEND ERROR: ", e
+
+	def verifyBlock(self, socket, message):
+		# generate nonce
+		nonce = uuid1().hex
+		# get peer address
+		peer = socket.getpeername()
+		# get block
+		block = json.loads(json.loads(message)['content'])
+		# generate fingerprint
+		fingerprint = hashMe(block).encode('utf-8')
+		# generate signature
+		signature = self.key.sign(fingerprint, '')
+		# send message
+		self.sendMessage(peer[0], peer[1], signature + (nonce,), 3)
+		print 'Block sent to: ', peer[0], peer[1]
+
+	def waitForSignedBlock(self, socket, json_message):
+		# proof here
+		peer = socket.getpeername()
+		if peer in self.received_transaction_from:
+			publickey = RSA.importKey(self.received_transaction_from[peer])
+			if publickey.verify(hashMe(self.newBlock).encode('utf-8'), (json_message['content'][0],)):
+				# parse values
+				raw_pubkey = self.received_transaction_from[peer].replace('-----BEGIN PUBLIC KEY-----', '').replace('\n', '').replace('-----END PUBLIC KEY-----', '')
+				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
+				nonce = json_message['content'][1]
+				# get the difference of
+				self.potential_miners[peer] = abs(int(self.newBlock['blockHash']+nonce, 36) - int(p[:96], 36))
+				print self.potential_miners
+
+				del self.received_transaction_from[peer]
+				print 'Block signature verified: ', hashMe(self.newBlock)
+			else:
+				print 'Block signature not verified!'
+		else:
+			print 'Peer is not in received transactions!'
+
+		# if all blocks are verified
+		if len(self.received_transaction_from) == 0:
+			addToChain(self.newBlock, self.conn, self.cur)
+			self.messages = []
+			self.received_transaction_from = {}
+
+			# get next miner and broadcast
+			self.miner = min(self.potential_miners)
+			self.broadcastMessage(self.miner, 5)
+			print 'Current miner is set to: ', self.miner
 
 	def sending(self):
 		while True:
