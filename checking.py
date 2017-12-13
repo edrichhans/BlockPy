@@ -3,9 +3,10 @@ from hashMe import hashMe
 def checkBlockHash(block):
     # Raise an exception if the hash does not match the block contents
     expectedHash = hashMe( block['contents'] )
-    if block['hash']!=expectedHash:
+    if block['blockHash']!=expectedHash:
+        print block['contents']
         raise Exception('Hash does not match contents of block %s. BlockHash: %s. Expected: %s'%
-                        (block['contents']['blockNumber'], block['hash'], expectedHash))
+                        (block['contents']['blockNumber'], block['blockHash'], expectedHash))
     return True
 
 def checkBlockValidity(block,parent):    
@@ -15,7 +16,7 @@ def checkBlockValidity(block,parent):
     # - Block number increments the parent block number by 1
     # - Accurately references the parent block's hash
     parentNumber = parent['contents']['blockNumber']
-    parentHash   = parent['hash']
+    parentHash   = parent['blockHash']
     blockNumber  = block['contents']['blockNumber']
     
     # Check transaction validity; throw an error if an invalid transaction was found.
