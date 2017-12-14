@@ -46,6 +46,7 @@ class Community_Peer(Thread):
 
 
 				else:
+					#receive the public key form the recently connected peer
 					message = socket.recv(4096)
 					try:
 						peer_info = pickle.loads(message)

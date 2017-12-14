@@ -23,7 +23,7 @@ class Peer(Thread):
 		self.potential_miners = {}
 		self.miner = None
 		self.public_key_list = {}
-		self.counter = 0
+		self.counter = 0 #for making sure that a newly connected node only connects to other peers once
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -80,8 +80,8 @@ class Peer(Thread):
 							elif category == str(6):	#peer discovery - update list of public keys
 								spec_peer = [] 
 								self.public_key_list = pickle.loads(json_message['content'])
-								if self.counter < 1:
-									for addr in self.public_key_list:
+								if self.counter < 1: #check if peer already had initial connection
+									for addr in self.public_key_list: #connect to specific peers not in the local peer list
 										if addr not in self.peers:
 											spec_peer.append(addr)
 									print spec_peer
@@ -192,8 +192,8 @@ class Peer(Thread):
 		for conn in self.peers:
 			self.peers[conn].close()
 
-	def getPeers(self, peer_addr = [],x = True):
-		if (len(peer_addr) == 0 and x):
+	def getPeers(self, peer_addr = [],connect_to_community_peer = True):
+		if (len(peer_addr) == 0 and connect_to_community_peer):
 			try:
 				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
