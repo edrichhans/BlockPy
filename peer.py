@@ -23,6 +23,7 @@ class Peer(Thread):
 		self.potential_miners = {}
 		self.miner = None
 		self.public_key_list = {}
+		self.counter = 0
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -60,15 +61,15 @@ class Peer(Thread):
 						# 3: waiting for signedBlock Phase	4: waiting for distBlockchain
 						if json.loads(message):
 							json_message = json.loads(message)
-							# print "\n" + str(socket.getpeername()) + ": " + message
-
+							print "\n" + str(socket.getpeername()) + ": " + message
 							category = str(json_message['_category'])
 							if category == str(1):	#waiting for transaction
-								self.waitForTxn(json_message, socket, message)
+								# self.waitForTxn(json_message, socket, message)
+								None
 
 							elif category == str(2):	# verifying block
-								self.verifyBlock(socket, message)
-
+								# self.verifyBlock(socket, message)
+								None
 							elif category == str(3):	#waiting for signedBlock
 								self.waitForSignedBlock(socket, json_message)
 
@@ -76,10 +77,17 @@ class Peer(Thread):
 								self.miner = json_message['content']
 								print 'Current miner is set to: ', self.miner
 
-							elif category == str(6):	#peer discovery - update list of public keys 
+							elif category == str(6):	#peer discovery - update list of public keys
+								spec_peer = [] 
 								self.public_key_list = pickle.loads(json_message['content'])
-								print self.public_key_list
-								
+								if self.counter < 1:
+									for addr in self.public_key_list:
+										if addr not in self.peers:
+											spec_peer.append(addr)
+									print spec_peer
+									self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
+									self.counter += 1
+								# print self.public_key_list
 					else:
 						print str(socket.getpeername()), str(socket)
 					# except Exception as e:
@@ -168,7 +176,7 @@ class Peer(Thread):
 						except:
 							print "Wrong Input: Incomplete Parameters"
 
-				self.getPeers(spec_peer)
+				self.getPeers(spec_peer, True)
 
 			elif command == "send message":
 				self.sendMessage()
@@ -184,8 +192,8 @@ class Peer(Thread):
 		for conn in self.peers:
 			self.peers[conn].close()
 
-	def getPeers(self, peer_addr = []):
-		if (len(peer_addr) == 0):
+	def getPeers(self, peer_addr = [],x = True):
+		if (len(peer_addr) == 0 and x):
 			try:
 				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -255,7 +263,7 @@ class Peer(Thread):
 		packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
 		raw_string = json.dumps(packet)
 		for addr in self.peers:
-			if addr != (self.ip_addr, self.port):
+			if addr != (self.ip_addr, self.port) and addr != self.community_ip:
 				ssnd = self.peers[addr]
 				try:
 					ssnd.sendall(raw_string)

@@ -43,8 +43,7 @@ class Community_Peer(Thread):
 					conn, addr = self.srcv.accept()
 					self.peers[addr] = conn
 					print "\nEstablished connection with: ", addr
-					for addr in self.peers:
-						print addr
+
 
 				else:
 					message = socket.recv(4096)
@@ -57,8 +56,11 @@ class Community_Peer(Thread):
 					# try:
 					except:
 						print "invalid format pubkey"
-					
-					print self.public_key_list
+					print "_______________"
+					print "Public Key List"
+					for addr in self.public_key_list:
+						print addr
+					print "_______________"
 					self.broadcastMessage(pickle.dumps(self.public_key_list),6)					
 
 					# elif (message != ""):
@@ -163,8 +165,8 @@ class Community_Peer(Thread):
 			print "Address not recognized"
 
 	def broadcastMessage(self, message=None, category=None):
-		for addr in self.peers:
-			print addr
+		# for addr in self.peers:
+		# 	print addr
 
 		pubkey = self.key.publickey().exportKey()
 		if not message:
