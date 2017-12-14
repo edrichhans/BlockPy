@@ -17,8 +17,8 @@ class Peer(Thread):
 		self.port = port
 		self.received_transaction_from = {}
 		self.messages = []
-		self.max_txns = 2
-		self.conn, self.cur = connect()
+		self.max_txns = 3
+		#self.conn, self.cur = connect()
 		self.potential_miners = {}
 		self.miner = None
 
@@ -32,7 +32,7 @@ class Peer(Thread):
 		self.peers[(self.ip_addr, self.port)] = self.srcv
 
 		Thread(target=self.listening).start()
-		Thread(target=self.sending).start()
+		#Thread(target=self.sending).start()
 
 	def listening(self):
 		#listen up to 5 other peers
@@ -170,7 +170,7 @@ class Peer(Thread):
 			elif command == "broadcast message":
 				self.broadcastMessage()
 			elif command == 'disconnect':
-				disconnect(self.conn, self.cur)
+				None#disconnect(self.conn, self.cur)
 			else:
 				print "Unknown command"
 
