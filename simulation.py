@@ -10,8 +10,8 @@ except:
 
 cur = conn.cursor()
 ip_addr = '127.0.0.1'
-port = 8000
-myself = Peer(ip_addr, port)
+port = 6000
+myself = Peer(ip_addr, port, True)
 
 print "Connecting to peer..."
 ip_addr = raw_input("IP Address: ")
