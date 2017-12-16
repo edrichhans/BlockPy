@@ -9,7 +9,11 @@ from uuid import uuid1
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
 
+<<<<<<< HEAD
 	def __init__(self, ip_addr, port):
+=======
+	def __init__(self, ip_addr, port, sim=False):
+>>>>>>> asformaran2
 		random_generator = Random.new().read
 		self.key = RSA.generate(1024, random_generator)
 		self.peers = {}
@@ -17,9 +21,16 @@ class Peer(Thread):
 		self.port = port
 		self.received_transaction_from = {}
 		self.messages = []
+<<<<<<< HEAD
 		self.max_txns = 3
 		#self.conn, self.cur = connect()
 		self.potential_miners = {}
+=======
+		self.potential_miners = {}
+		self.sim = sim
+		self.max_txns = 3
+		self.conn, self.cur = connect()
+>>>>>>> asformaran2
 		self.miner = None
 
 		#socket for receiving messages
@@ -32,7 +43,12 @@ class Peer(Thread):
 		self.peers[(self.ip_addr, self.port)] = self.srcv
 
 		Thread(target=self.listening).start()
+<<<<<<< HEAD
 		#Thread(target=self.sending).start()
+=======
+		if self.sim==False:
+			Thread(target=self.sending).start()
+>>>>>>> asformaran2
 
 	def listening(self):
 		#listen up to 5 other peers
@@ -115,9 +131,13 @@ class Peer(Thread):
 			publickey = RSA.importKey(self.received_transaction_from[peer])
 			if publickey.verify(hashMe(self.newBlock).encode('utf-8'), (json_message['content'][0],)):
 				# parse values
+<<<<<<< HEAD
 				raw_pubkey = self.received_transaction_from[peer].replace('-----BEGIN PUBLIC KEY-----', '')
 				raw_pubkey = raw_pubkey.replace('\n', '')
 				raw_pubkey = raw_pubkey.replace('-----END PUBLIC KEY-----', '')
+=======
+				raw_pubkey = self.received_transaction_from[peer].replace('-----BEGIN PUBLIC KEY-----', '').replace('\n', '').replace('-----END PUBLIC KEY-----', '')
+>>>>>>> asformaran2
 				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
 				nonce = json_message['content'][1]
 				# get the difference of
@@ -133,6 +153,10 @@ class Peer(Thread):
 
 		# if all blocks are verified
 		if len(self.received_transaction_from) == 0:
+<<<<<<< HEAD
+=======
+    		#commented out for simulation purposes
+>>>>>>> asformaran2
 			addToChain(self.newBlock, self.conn, self.cur)
 			self.messages = []
 			self.received_transaction_from = {}
@@ -170,7 +194,11 @@ class Peer(Thread):
 			elif command == "broadcast message":
 				self.broadcastMessage()
 			elif command == 'disconnect':
+<<<<<<< HEAD
 				None#disconnect(self.conn, self.cur)
+=======
+				disconnect(self.conn, self.cur)
+>>>>>>> asformaran2
 			else:
 				print "Unknown command"
 
@@ -216,7 +244,11 @@ class Peer(Thread):
 		if (ip, port) in self.peers:
 			pubkey = self.key.publickey().exportKey()
 			# pubkey = pubkey.encode('string_escape').replace('\\\\','\\')
+<<<<<<< HEAD
 			 #replace with actual public key
+=======
+			#replace with actual public key
+>>>>>>> asformaran2
 			if not message:
 				message = raw_input("content: ")
 			if not category:
@@ -275,9 +307,16 @@ def main(argv):
 	#this is the default ip and port
 	ip_addr = '127.0.0.1'
 	port = 8000
+<<<<<<< HEAD
 
 	try:
 		opts, args = getopt.getopt(argv, "h:p:", ["hostname=", "port="])
+=======
+	sim = False
+
+	try:
+		opts, args = getopt.getopt(argv, "h:p:s:", ["hostname=", "port=", "sim="])
+>>>>>>> asformaran2
 	except:
 		print "Requires hostname and port number"
 		sys.exit(2)
@@ -287,6 +326,7 @@ def main(argv):
 			ip_addr = arg
 		elif opt in ("-p", "--port"):
 			port = int(arg)
+<<<<<<< HEAD
 
 	return ip_addr, port
 
@@ -294,3 +334,16 @@ if __name__ == "__main__":
 	ip_addr, port = main(sys.argv[1:])
 
 	node = Peer(ip_addr, port)
+=======
+		elif opt in ("-sim", "--sim"):
+			if arg == "t":
+				sim = True
+			else:
+				sim = False
+
+	return ip_addr, port, sim
+
+if __name__ == "__main__":
+	ip_addr, port, sim = main(sys.argv[1:])
+	node = Peer(ip_addr, port, sim)
+>>>>>>> asformaran2

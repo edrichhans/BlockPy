@@ -12,7 +12,10 @@ def connect(ipaddr = None, port = None, id = None):
 
 def sender(sock, msg = None):
 	msg = raw_input('Message: ') if not msg else msg
+<<<<<<< HEAD
 
+=======
+>>>>>>> asformaran2
 	if msg != '':
 		sock.send(msg)
 	return msg

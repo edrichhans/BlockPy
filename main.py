@@ -15,7 +15,11 @@ def connect():
  
         # connect to the PostgreSQL server
         print 'Connecting to the PostgreSQL database...'
+<<<<<<< HEAD
         conn = psycopg2.connect(**params)
+=======
+        conn = psycopg2.connect("dbname=blockpy user=edrichhans password=password port=10000")
+>>>>>>> asformaran2
  
         # create a cursor
         cur = conn.cursor()
@@ -47,6 +51,10 @@ def disconnect(conn, cur):
 
 def create(message, conn, cur):
     print '\nReading contents of current chain...\n'
+<<<<<<< HEAD
+=======
+    #commented out for simulation purposes
+>>>>>>> asformaran2
     chain = readChainSql(conn, cur)
     # viewChainSql(chain)
     txnList = []
