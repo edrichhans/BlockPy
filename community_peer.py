@@ -18,6 +18,7 @@ class Community_Peer(Thread):
 		self.messages = []
 		self.conn, self.cur = connect()
 		self.public_key_list = {}
+		self.public_key_list[(self.ip_addr,self.port)] = self.key.publickey() #add community public key to public key list
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -60,7 +61,7 @@ class Community_Peer(Thread):
 					print "_______________"
 					print "Public Key List"
 					for addr in self.public_key_list:
-						print addr
+						print str(addr) + self.public_key_list[addr].exportKey()
 					print "_______________"
 					self.broadcastMessage(pickle.dumps(self.public_key_list),6)					
 

@@ -88,6 +88,13 @@ class Peer(Thread):
 									self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
 									self.counter += 1
 								# print self.public_key_list
+							elif category == str(7): #work around for local port limitations , send public keys of 
+								self.public_key_list[socket.getpeername()] = RSA.importKey(pickle.loads(json_message['content'])) #add public key sent by newly connected peer
+								print "Public Key List"
+								for addr in self.public_key_list:
+									print str(addr) + self.public_key_list[addr].exportKey()
+								print "_______________"
+
 					else:
 						print str(socket.getpeername()), str(socket)
 					# except Exception as e:
@@ -212,6 +219,8 @@ class Peer(Thread):
 				self.peers[addr].bind((self.ip_addr, 0))
 				self.peers[addr].connect(addr)
 				print "Connected: ", addr[0], str(addr[1])
+				message = (self.key.publickey().exportKey())
+				self.sendMessage(addr[0],addr[1],pickle.dumps(message),7) #reply to newly connected peer with public key
 				
 
 	def sendMessage(self, ip=None, port=None, message=None, category=None):
@@ -230,14 +239,12 @@ class Peer(Thread):
 				print e
 
 		if (ip, port) in self.peers:
-			pubkey = self.key.publickey().exportKey()
-			# pubkey = pubkey.encode('string_escape').replace('\\\\','\\')
 			 #replace with actual public key
 			if not message:
 				message = raw_input("content: ")
 			if not category:
 				category = raw_input("category: ")
-			packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
+			packet = {u'_owner': self.key.publickey().exportKey(), u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
 			raw_string = json.dumps(packet)
 				
 			ssnd = self.peers[(ip,port)]
@@ -253,16 +260,16 @@ class Peer(Thread):
 		for addr in self.peers:
 			print addr
 
-		pubkey = self.key.publickey().exportKey()
 		if not message:
 			message = raw_input("Message: ")
 
 		if not category:
 			category = raw_input("category: ")
 
-		packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
-		raw_string = json.dumps(packet)
+		
 		for addr in self.peers:
+			packet = {u'_owner': self.key.publickey().exportKey(), u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
+			raw_string = json.dumps(packet)
 			if addr != (self.ip_addr, self.port) and addr != self.community_ip:
 				ssnd = self.peers[addr]
 				try:
