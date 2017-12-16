@@ -18,36 +18,49 @@ ip_addr = raw_input("IP Address: ")
 port = input("Port: ")
 myself.getPeers([(ip_addr, port)])
 
-sender = raw_input("Sender: ")
-receiver = raw_input("Receiver: ")
-transaction = raw_input("Path: ")
+while True:
+	sender = raw_input("Sender: ")
+	receiver = raw_input("Receiver: ")
+	transaction = raw_input("Path: ")
+	transaction = transaction.replace('"', "")
 
-cur.execute("CREATE TABLE sample (id serial PRIMARY KEY, sender varchar, receiver varchar, data varchar);")
+	try:
+		cur.execute("CREATE TABLE if not exists sample (id serial PRIMARY KEY, sender varchar, receiver varchar, data varchar);")
+		conn.commit()
+	except Exception as e:
+		print e
 
-with open(transaction, 'rb') as csvfile:
-	finput = csv.reader(csvfile)
-	fname = path.basename(csvfile.name)
+	with open(transaction, 'rb') as csvfile:
+		finput = csv.reader(csvfile)
+		fname = path.basename(csvfile.name)
 
-	parameters = next(finput)
-	paramsize = len(parameters)
+		parameters = next(finput)
+		paramsize = len(parameters)
 
-	for values in finput:
-		data = {}
+		for values in finput:
+			data = {}
 
-		for i in range(0, paramsize):
-			data[str(parameters[i])] = str(values[i])
+			for i in range(0, paramsize):
+				data[str(parameters[i])] = str(values[i])
 
-		data = json.dumps(data)	
+			data = json.dumps(data)	
 
-		cur.execute("INSERT INTO sample(sender, receiver, data) VALUES (%s, %s, %s)", 
-			(sender, receiver, data))
-		print "Inserted to database:", values
-		myself.sendMessage(ip_addr, port, data, 1)
+			cur.execute("INSERT INTO sample(sender, receiver, data) VALUES (%s, %s, %s)", 
+				(sender, receiver, data))
+			print "Inserted to database:", values
+			myself.sendMessage(ip_addr, port, data, 1)
 
 
-cur.execute("DROP TABLE sample;")
+	#cur.execute("DROP TABLE sample;")
 
-conn.commit()
+	conn.commit()
+
+	new_txns = raw_input("Send more transactions?(y/n): ")
+	if new_txns.lower() == 'y':
+		continue
+	else:
+		break
+
 cur.close()
 
 try:
