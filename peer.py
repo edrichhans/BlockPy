@@ -9,7 +9,7 @@ from uuid import uuid1
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
 
-	def __init__(self, ip_addr, port):
+	def __init__(self, ip_addr, port, sim=False):
 		random_generator = Random.new().read
 		self.key = RSA.generate(1024, random_generator)
 		self.peers = {}
@@ -17,9 +17,10 @@ class Peer(Thread):
 		self.port = port
 		self.received_transaction_from = {}
 		self.messages = []
-		self.max_txns = 2
-		self.conn, self.cur = connect()
 		self.potential_miners = {}
+		self.sim = sim
+		self.max_txns = 3
+		self.conn, self.cur = connect()
 		self.miner = None
 
 		#socket for receiving messages
@@ -32,7 +33,8 @@ class Peer(Thread):
 		self.peers[(self.ip_addr, self.port)] = self.srcv
 
 		Thread(target=self.listening).start()
-		Thread(target=self.sending).start()
+		if self.sim==False:
+			Thread(target=self.sending).start()
 
 	def listening(self):
 		#listen up to 5 other peers
@@ -131,6 +133,7 @@ class Peer(Thread):
 
 		# if all blocks are verified
 		if len(self.received_transaction_from) == 0:
+    		#commented out for simulation purposes
 			addToChain(self.newBlock, self.conn, self.cur)
 			self.messages = []
 			self.received_transaction_from = {}
@@ -214,7 +217,7 @@ class Peer(Thread):
 		if (ip, port) in self.peers:
 			pubkey = self.key.publickey().exportKey()
 			# pubkey = pubkey.encode('string_escape').replace('\\\\','\\')
-			 #replace with actual public key
+			#replace with actual public key
 			if not message:
 				message = raw_input("content: ")
 			if not category:
@@ -273,9 +276,10 @@ def main(argv):
 	#this is the default ip and port
 	ip_addr = '127.0.0.1'
 	port = 8000
+	sim = False
 
 	try:
-		opts, args = getopt.getopt(argv, "h:p:", ["hostname=", "port="])
+		opts, args = getopt.getopt(argv, "h:p:s:", ["hostname=", "port=", "sim="])
 	except:
 		print "Requires hostname and port number"
 		sys.exit(2)
@@ -285,10 +289,14 @@ def main(argv):
 			ip_addr = arg
 		elif opt in ("-p", "--port"):
 			port = int(arg)
+		elif opt in ("-sim", "--sim"):
+			if arg == "t":
+				sim = True
+			else:
+				sim = False
 
-	return ip_addr, port
+	return ip_addr, port, sim
 
 if __name__ == "__main__":
-	ip_addr, port = main(sys.argv[1:])
-
-	node = Peer(ip_addr, port)
+	ip_addr, port, sim = main(sys.argv[1:])
+	node = Peer(ip_addr, port, sim)
