@@ -5,6 +5,7 @@ from hashMe import hashMe
 from Crypto.PublicKey import RSA
 from Crypto import Random
 from uuid import uuid1
+import pickle
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
