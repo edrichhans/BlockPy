@@ -15,7 +15,7 @@ def connect():
  
         # connect to the PostgreSQL server
         print 'Connecting to the PostgreSQL database...'
-        conn = psycopg2.connect("dbname=blockpy user=edrichhans password=password port=10000")
+        conn = psycopg2.connect(**params)
  
         # create a cursor
         cur = conn.cursor()
