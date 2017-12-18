@@ -5,6 +5,7 @@ from hashMe import hashMe
 from Crypto.PublicKey import RSA
 from Crypto import Random
 from uuid import uuid1
+import pickle
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
@@ -22,7 +23,8 @@ class Peer(Thread):
 		self.max_txns = 3
 		self.conn, self.cur = connect()
 		self.miner = None
-
+		self.public_key_list = {}
+		self.counter = 0 #for making sure that a newly connected node only connects to other peers once
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.srcv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -75,6 +77,23 @@ class Peer(Thread):
 							elif category == str(5):
 								self.miner = json_message['content']
 								print 'Current miner is set to: ', self.miner
+							elif category == str(6):	#peer discovery - update list of public keys
+								spec_peer = [] 
+								self.public_key_list = pickle.loads(json_message['content'])
+								if self.counter < 1: #check if peer already had initial connection
+									for addr in self.public_key_list: #connect to specific peers not in the local peer list
+										if addr not in self.peers:
+											spec_peer.append(addr)
+									print spec_peer
+									self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
+									self.counter += 1
+								# print self.public_key_list
+							elif category == str(7): #work around for local port limitations , send public keys of 
+								self.public_key_list[socket.getpeername()] = RSA.importKey(pickle.loads(json_message['content'])) #add public key sent by newly connected peer
+								print "Public Key List"
+								for addr in self.public_key_list:
+									print str(addr) + self.public_key_list[addr].exportKey()
+								print "_______________"
 					else:
 						print str(socket.getpeername()), str(socket)
 					# except Exception as e:
@@ -164,7 +183,7 @@ class Peer(Thread):
 						except:
 							print "Wrong Input: Incomplete Parameters"
 
-				self.getPeers(spec_peer)
+				self.getPeers(spec_peer,True)
 
 			elif command == "send message":
 				self.sendMessage()
@@ -180,14 +199,16 @@ class Peer(Thread):
 		for conn in self.peers:
 			self.peers[conn].close()
 
-	def getPeers(self, peer_addr = []):
-		if (len(peer_addr) == 0 and len(addr) == 0):
+	def getPeers(self, peer_addr = [],connect_to_community_peer = True):
+		if (len(peer_addr) == 0 and connect_to_community_peer):
 			try:
 				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				self.peers[self.community_ip].bind((self.ip_addr, self.port))
+				self.peers[self.community_ip].bind((self.ip_addr,0))
 				self.peers[self.community_ip].connect(self.community_ip)
-				print "Connected: ", self.community_ip[0], self.community_ip[1]
+				print "Connected: ", self.community_ip[0], str(self.community_ip[1])
+				message = (self.ip_addr,self.port,self.key.publickey().exportKey())
+				self.peers[self.community_ip].sendall(pickle.dumps(message))
 			except:
 				print "Community server down"
 
@@ -198,6 +219,9 @@ class Peer(Thread):
 				self.peers[addr].bind((self.ip_addr, 0))
 				self.peers[addr].connect(addr)
 				print "Connected: ", addr[0], str(addr[1])
+				message = (self.key.publickey().exportKey())
+				self.sendMessage(addr[0],addr[1],pickle.dumps(message),7) #reply to newly connected peer with public key
+				
 
 	def sendMessage(self, ip=None, port=None, message=None, category=None):
 		for addr in self.peers:
@@ -215,14 +239,12 @@ class Peer(Thread):
 				print e
 
 		if (ip, port) in self.peers:
-			pubkey = self.key.publickey().exportKey()
-			# pubkey = pubkey.encode('string_escape').replace('\\\\','\\')
-			#replace with actual public key
+			 #replace with actual public key
 			if not message:
 				message = raw_input("content: ")
 			if not category:
 				category = raw_input("category: ")
-			packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
+			packet = {u'_owner': self.key.publickey().exportKey(), u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
 			raw_string = json.dumps(packet)
 				
 			ssnd = self.peers[(ip,port)]
@@ -238,21 +260,22 @@ class Peer(Thread):
 		for addr in self.peers:
 			print addr
 
-		pubkey = self.key.publickey().exportKey()
 		if not message:
 			message = raw_input("Message: ")
 
 		if not category:
 			category = raw_input("category: ")
 
-		packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
-		raw_string = json.dumps(packet)
+		
 		for addr in self.peers:
-			ssnd = self.peers[addr]
-			try:
-				ssnd.sendall(raw_string)
-			except Exception as e:
-				print e
+			packet = {u'_owner': self.key.publickey().exportKey(), u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
+			raw_string = json.dumps(packet)
+			if addr != (self.ip_addr, self.port) and addr != self.community_ip:
+				ssnd = self.peers[addr]
+				try:
+					ssnd.sendall(raw_string)
+				except Exception as e:
+					print e
 
 	def returnPeerList(self, ip, port):
 		ssnd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -265,7 +288,7 @@ class Peer(Thread):
 			ssnd.close()
 		except Exception as e:
 			ssnd.close()
-			print e
+			print e				
 
 
 #main code to run when running peer.py
