@@ -15,10 +15,15 @@ myself = Peer(ip_addr, port, True)
 
 print "Connecting to peer..."
 ip_addr = raw_input("IP Address: ")
-port = input("Port: ")
-myself.getPeers([(ip_addr, port)])
+port = raw_input("Port: ")
+if ip_addr and port:
+	myself.getPeers([(ip_addr, int(port))])
+else:
+	myself.getPeers([])	
 
 while True:
+	ip_addr = raw_input("Send to IP Address: ")
+	port = raw_input("Send to Port: ")
 	sender = raw_input("Sender: ")
 	receiver = raw_input("Receiver: ")
 	transaction = raw_input("Path: ")
@@ -48,7 +53,7 @@ while True:
 			cur.execute("INSERT INTO sample(sender, receiver, data) VALUES (%s, %s, %s)", 
 				(sender, receiver, data))
 			print "Inserted to database:", values
-			myself.sendMessage(ip_addr, port, data, 1)
+			myself.sendMessage(ip_addr, int(port), data, 1)
 
 
 	#cur.execute("DROP TABLE sample;")
