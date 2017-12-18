@@ -15,8 +15,12 @@ myself = Peer(ip_addr, port, True)
 
 print "Connecting to peer..."
 ip_addr = raw_input("IP Address: ")
-port = input("Port: ")
-myself.getPeers([(ip_addr, port)])
+port = raw_input("Port: ")
+
+if ip_addr and port:
+	myself.getPeers([(ip_addr, int(port))])
+else:
+	myself.getPeers()
 
 while True:
 	sender = raw_input("Sender: ")
