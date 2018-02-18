@@ -51,7 +51,7 @@ def checkChain(chain):
     if type(chain)==str:
         try:
             chain = json.loads(chain)
-            assert( type(chain)==list)
+            assert(type(chain)==list)
         except:  # This is a catch-all, admittedly crude
             return False
     elif type(chain)!=list:

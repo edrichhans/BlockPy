@@ -1,3 +1,10 @@
+
+'''
+
+Change ip address and port of commmunity peer before running
+
+'''
+
 import json, socket, sys, getopt, select
 from threading import Thread
 from main import create, addToChain, connect, disconnect
@@ -207,8 +214,10 @@ class Community_Peer(Thread):
 #if no arguments passed, will use the default ip and port
 def main(argv):
 	#this is the default ip and port
-	ip_addr = '127.0.0.1'
-	port = 8000
+	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	#s.connect(("8.8.8.8", 80))
+	ip_addr = "127.0.0.1"#s.getsockname()[0]
+	port = 5000
 
 	try:
 		opts, args = getopt.getopt(argv, "h:p:", ["hostname=", "port="])
@@ -227,4 +236,4 @@ def main(argv):
 if __name__ == "__main__":
 	ip_addr, port = main(sys.argv[1:])
 
-	node = Community_Peer()
+	node = Community_Peer(ip_addr, port)
