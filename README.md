@@ -3,6 +3,21 @@ BlockPy is an attempt to create a python API for a blockchain-based data integri
 
 Currently uses python native sockets
 
+## Setup
+
+### Create `database.ini`
+
+Contents:
+```
+[postgresql]
+host=localhost
+database=blockpy
+user=postgres
+password=toor
+port=10000
+```
+Set the port to `5432` for default postgre port.
+
 ## Files
 
 These will describe specific files and their functionalities.

@@ -8,3 +8,5 @@ venv/
 peer2.py
 peer3.py
 test.py
+keys/
+database.ini

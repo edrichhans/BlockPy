@@ -5,7 +5,7 @@ from hashMe import hashMe
 from Crypto.PublicKey import RSA
 from Crypto import Random
 from uuid import uuid1
-import pickle
+import pickle, os, errno
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
@@ -13,6 +13,12 @@ class Peer(Thread):
 	def __init__(self, ip_addr, port, sim=False):
 		random_generator = Random.new().read
 		self.key = RSA.generate(1024, random_generator)
+
+		try:
+			os.makedirs('keys')
+		except OSError as e:
+			if e.errno != errno.EEXIST:
+				raise
 
 		with open("keys/pubkey.txt","w") as fpub:
 			fpub.write(self.key.publickey().exportKey())
