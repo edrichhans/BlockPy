@@ -6,6 +6,7 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 from uuid import uuid1
 import pickle, os, errno
+from blockpy_logging import logger
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
@@ -22,9 +23,12 @@ class Peer(Thread):
 
 		with open("keys/pubkey.txt","w") as fpub:
 			fpub.write(self.key.publickey().exportKey())
+			logger.info("Created public key",
+				extra={"publickey": self.key.publickey().exportKey()})
 
 		with open("keys/privkey.txt","w") as fpriv:
 			fpriv.write(self.key.exportKey())
+			logger.info("Created private key")
 
 		self.peers = {}
 		self.ip_addr = ip_addr
@@ -41,6 +45,8 @@ class Peer(Thread):
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.srcv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		logger.info("peer.py is running",
+			extra={"addr": self.ip_addr, "port": self.port})
 		print "hostname", self.ip_addr
 		print "port", self.port
 		self.srcv.bind((self.ip_addr, self.port))
@@ -64,6 +70,8 @@ class Peer(Thread):
 				if socket == self.srcv:
 					conn, addr = self.srcv.accept()
 					self.peers[addr] = conn
+					logger.info("Established connection",
+						extra={"address": addr})
 					print "\nEstablished connection with: ", addr
 
 				else:
@@ -77,8 +85,10 @@ class Peer(Thread):
 						# 3: waiting for signedBlock Phase	4: waiting for distBlockchain
 						if json.loads(message):
 							json_message = json.loads(message)
-							print "\n" + str(socket.getpeername()) + ": " + message
+							print "\n" + str(socket.getpeername()) + ": " + json.dumps(json_message, indent=4, sort_keys=True)
 							category = str(json_message['_category'])
+							logger.info("Message received",
+								extra={"owner":str(socket.getpeername()), "category": category, "received_message": message})
 
 							if category == str(1):	#waiting for transaction
 								with open("keys/privkey.txt","r") as fpriv:
@@ -96,6 +106,8 @@ class Peer(Thread):
 
 							elif category == str(5):
 								self.miner = json_message['content']
+								logger.info("Current miner updated",
+									extra={"miner": self.miner})
 								print 'Current miner is set to: ', self.miner
 							elif category == str(6):	#peer discovery - update list of public keys
 								spec_peer = [] 
@@ -129,11 +141,16 @@ class Peer(Thread):
 			self.received_transaction_from[socket.getpeername()] = owner
 			self.messages.append(message)
 			if len(self.messages) >= self.max_txns:
+				# create new block
 				self.newBlock = create(self.messages, self.conn, self.cur)
 				for peer in self.received_transaction_from:
+					# return block for verification
 					self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
-					print 'Block sent to: ', str(peer[0]), str(peer[1])
+					logger.info("Block returned for verification",
+						extra={"addr": peer[0], "port": peer[1]})
+					print 'Block returned for verification to: ', str(peer[0]), str(peer[1])
 		except Exception as e:
+			logger.error("Error sending file", exc_info=True)
 			print "SEND ERROR: ", e
 
 	def verifyBlock(self, socket, message):
@@ -149,7 +166,9 @@ class Peer(Thread):
 		signature = self.key.sign(fingerprint, '')
 		# send message
 		self.sendMessage(peer[0], peer[1], signature + (nonce,), 3)
-		print 'Block sent to: ', peer[0], peer[1]
+		logger.info("Signed block sent",
+			extra={"addr": peer[0], "port": peer[1]})
+		print 'Signed block sent to: ', peer[0], peer[1]
 
 	def waitForSignedBlock(self, socket, json_message):
 		# proof here
@@ -166,10 +185,14 @@ class Peer(Thread):
 				print self.potential_miners
 
 				del self.received_transaction_from[peer]
+				logger.info("Block signature verified",
+					extra={"hash": hashMe(self.newBlock)})
 				print 'Block signature verified: ', hashMe(self.newBlock)
 			else:
+				logger.warn("Block signature not verified")
 				print 'Block signature not verified!'
 		else:
+			logger.warn("Peer is not in received transactions")
 			print 'Peer is not in received transactions!'
 
 		# if all blocks are verified
@@ -182,6 +205,8 @@ class Peer(Thread):
 			# get next miner and broadcast
 			self.miner = min(self.potential_miners)
 			self.broadcastMessage(self.miner, 5)
+			logger.info("Current miner updated",
+				extra={"miner": self.miner})
 			print 'Current miner is set to: ', self.miner
 
 	def sending(self):
@@ -223,6 +248,8 @@ class Peer(Thread):
 				self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 				self.peers[self.community_ip].bind((self.ip_addr,0))
 				self.peers[self.community_ip].connect(self.community_ip)
+				logger.info("Connected to community peer",
+					extra={"addr":self.community_ip[0], "port":str(self.community_ip[1])})
 				print "Connected: ", self.community_ip[0], str(self.community_ip[1])
 				message = (self.ip_addr,self.port,self.key.publickey().exportKey())
 				self.peers[self.community_ip].sendall(pickle.dumps(message))
@@ -235,6 +262,8 @@ class Peer(Thread):
 				self.peers[addr].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 				self.peers[addr].bind((self.ip_addr, 0))
 				self.peers[addr].connect(addr)
+				logger.info("Connected to peer",
+					extra={"addr":addr[0], "port":str(addr[1])})
 				print "Connected: ", addr[0], str(addr[1])
 				message = (self.key.publickey().exportKey())
 				self.sendMessage(addr[0],addr[1],pickle.dumps(message),7) #reply to newly connected peer with public key

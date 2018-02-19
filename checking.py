@@ -1,10 +1,13 @@
 from hashMe import hashMe
+from blockpy_logging import logging
 
 def checkBlockHash(block):
     # Raise an exception if the hash does not match the block contents
     expectedHash = hashMe( block['contents'] )
     if block['blockHash']!=expectedHash:
-        print block['contents']
+        # print block['contents']
+        logger.warn("Hash does not match contents of block %s. BlockHash: %s. Expected: %s",
+            block['contents']['blockNumber'], block['blockHash'], expectedHash)
         raise Exception('Hash does not match contents of block %s. BlockHash: %s. Expected: %s'%
                         (block['contents']['blockNumber'], block['blockHash'], expectedHash))
     return True
@@ -29,9 +32,11 @@ def checkBlockValidity(block,parent):
     checkBlockHash(block) # Check hash integrity; raises error if inaccurate
 
     if blockNumber!=(parentNumber+1):
+        logger.warn("Hash does not match contents of block %s", blockNumber)
         raise Exception('Hash does not match contents of block %s'%blockNumber)
 
     if block['contents']['parentHash'] != parentHash:
+        logger.warn("Parent hash not accurate at block %s", blockNumber)
         raise Exception('Parent hash not accurate at block %s'%blockNumber)
     
     return True
