@@ -14,10 +14,10 @@ class Peer(Thread):
 		random_generator = Random.new().read
 		self.key = RSA.generate(1024, random_generator)
 
-		with open("pubkey.txt","w") as fpub:
+		with open("keys/pubkey.txt","w") as fpub:
 			fpub.write(self.key.publickey().exportKey())
 
-		with open("privkey.txt","w") as fpriv:
+		with open("keys/privkey.txt","w") as fpriv:
 			fpriv.write(self.key.exportKey())
 
 		self.peers = {}
@@ -75,7 +75,7 @@ class Peer(Thread):
 							category = str(json_message['_category'])
 
 							if category == str(1):	#waiting for transaction
-								with open("privkey.txt","r") as fpriv:
+								with open("keys/privkey.txt","r") as fpriv:
 									key = fpriv.read()
 									privkey = RSA.importKey(key)
 									json_message['content'] = privkey.decrypt(json_message['content'].decode("base64"))
