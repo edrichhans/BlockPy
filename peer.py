@@ -215,7 +215,7 @@ class Peer(Thread):
 			try:
 				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				self.peers[self.community_ip].bind((self.ip_addr,self.port))
+				self.peers[self.community_ip].bind((self.ip_addr,0))
 				self.peers[self.community_ip].connect(self.community_ip)
 				print "Connected: ", self.community_ip[0], str(self.community_ip[1])
 				message = (self.ip_addr,self.port,self.key.publickey().exportKey())
