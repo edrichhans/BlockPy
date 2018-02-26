@@ -1,34 +1,50 @@
-import json, socket, sys, getopt, select
+import json, socket, sys, getopt, select, datetime
 from threading import Thread
-from main import create, addToChain, connect, disconnect
+from main import connect, disconnect, create, addToChain
 from hashMe import hashMe
 from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_PSS
+from Crypto.Hash import SHA256
 from Crypto import Random
 from uuid import uuid1
 import pickle, os, errno
 from blockpy_logging import logger
+from chain import readChainSql
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
 
 	def __init__(self, ip_addr, port, sim=False):
-		random_generator = Random.new().read
-		self.key = RSA.generate(1024, random_generator)
-
 		try:
 			os.makedirs('keys')
 		except OSError as e:
 			if e.errno != errno.EEXIST:
 				raise
 
-		with open("keys/pubkey.txt","w") as fpub:
-			fpub.write(self.key.publickey().exportKey())
-			logger.info("Created public key",
-				extra={"publickey": self.key.publickey().exportKey()})
+		try:
+			with open("keys/privkey.txt","r") as fpriv:
+				key = fpriv.read()
+				self.privkey = RSA.importKey(key)
+				self.privkey = self.privkey.exportKey()
 
-		with open("keys/privkey.txt","w") as fpriv:
-			fpriv.write(self.key.exportKey())
-			logger.info("Created private key")
+			with open("keys/pubkey.txt","r") as fpub:
+				key = fpub.read()
+				self.pubkey = RSA.importKey(key)
+				self.pubkey = self.pubkey.exportKey()
+		except:
+			random_generator = Random.new().read
+			self.key = RSA.generate(1024, random_generator)
+			self.privkey = self.key.exportKey()
+			self.pubkey = self.key.publickey().exportKey()
+
+			with open("keys/pubkey.txt","w") as fpub:
+				fpub.write(self.pubkey)
+				logger.info("Created public key",
+					extra={"publickey": self.pubkey})
+
+			with open("keys/privkey.txt","w") as fpriv:
+				fpriv.write(self.privkey)
+				logger.info("Created private key")
 
 		self.peers = {}
 		self.ip_addr = ip_addr
@@ -91,10 +107,8 @@ class Peer(Thread):
 								extra={"owner":str(socket.getpeername()), "category": category, "received_message": message})
 
 							if category == str(1):	#waiting for transaction
-								with open("keys/privkey.txt","r") as fpriv:
-									key = fpriv.read()
-									privkey = RSA.importKey(key)
-									json_message['content'] = privkey.decrypt(json_message['content'].decode("base64"))
+								json_message['content'] = RSA.importKey(self.privkey).decrypt(json_message['content'].decode("base64"))
+								message = json.dumps(json_message)
 
 								self.waitForTxn(json_message, socket, message)
 
@@ -126,6 +140,8 @@ class Peer(Thread):
 								for addr in self.public_key_list:
 									print str(addr) + self.public_key_list[addr].exportKey()
 								print "_______________"
+							elif category == str(8):
+								print json_message['content']
 							else:
 								raise ValueError('No such category')
 					else:
@@ -135,20 +151,46 @@ class Peer(Thread):
 					# 	del self.peers[socket.getpeername()]
 					# 	continue
 
+	def myconverter(self, o):
+	    if isinstance(o, datetime.datetime):
+	        return o.__str__()
+
+	def checkTxnExists(self, json_message):
+		chain = readChainSql(self.conn, self.cur)
+		blockCount = len(chain)
+		chain = json.loads(json.dumps(chain,default=self.myconverter))
+		for i in range(1,blockCount):
+			for j in range(chain[i]['contents']['txnCount']):
+				content = json.loads(eval(chain[i]['contents']['blockTxn'])[j]['_content'])
+				owner = eval(chain[i]['contents']['blockTxn'])[j]['_owner']
+				if json_message['content'] == content and json_message['_owner'] == owner:
+					return True
+		return False
+
+
 	def waitForTxn(self, json_message, socket, message):
 		try:
-			owner = json_message['_owner']
-			self.received_transaction_from[socket.getpeername()] = owner
-			self.messages.append(message)
-			if len(self.messages) >= self.max_txns:
-				# create new block
-				self.newBlock = create(self.messages, self.conn, self.cur)
-				for peer in self.received_transaction_from:
-					# return block for verification
-					self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
-					logger.info("Block returned for verification",
-						extra={"addr": peer[0], "port": peer[1]})
-					print 'Block returned for verification to: ', str(peer[0]), str(peer[1])
+			txnexists = self.checkTxnExists(json_message)
+			if not txnexists:
+				owner = json_message['_owner']
+				self.received_transaction_from[socket.getpeername()] = owner
+				self.messages.append(message)
+				if len(self.messages) >= self.max_txns:
+					# create new block
+					self.newBlock = create(self.messages, self.conn, self.cur)
+					for peer in self.received_transaction_from:
+						# return block for verification
+						self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
+						logger.info("Block returned for verification",
+							extra={"addr": peer[0], "port": peer[1]})
+						print 'Block returned for verification to: ', str(peer[0]), str(peer[1])
+			else:
+				packet = {u'_category': "8", u'content':"Content already exists! Aborting transaction."}
+				raw_string = json.dumps(packet)
+				try:
+					socket.sendall(raw_string)
+				except Exception as e:
+					print e
 		except Exception as e:
 			logger.error("Error sending file", exc_info=True)
 			print "SEND ERROR: ", e
@@ -161,11 +203,13 @@ class Peer(Thread):
 		# get block
 		block = json.loads(json.loads(message)['content'])
 		# generate fingerprint
-		fingerprint = hashMe(block).encode('utf-8')
+		fingerprint = SHA256.new()
+		fingerprint.update(json.dumps(block))
 		# generate signature
-		signature = self.key.sign(fingerprint, '')
+		signer = PKCS1_PSS.new(RSA.importKey(self.privkey))
+		signature = signer.sign(fingerprint)
 		# send message
-		self.sendMessage(peer[0], peer[1], signature + (nonce,), 3)
+		self.sendMessage(peer[0], peer[1], (signature.encode('base64'), nonce), 3)
 		logger.info("Signed block sent",
 			extra={"addr": peer[0], "port": peer[1]})
 		print 'Signed block sent to: ', peer[0], peer[1]
@@ -175,7 +219,11 @@ class Peer(Thread):
 		peer = socket.getpeername()
 		if peer in self.received_transaction_from:
 			publickey = RSA.importKey(self.received_transaction_from[peer])
-			if publickey.verify(hashMe(self.newBlock).encode('utf-8'), (json_message['content'][0],)):
+			signer = PKCS1_PSS.new(publickey)
+			digest = SHA256.new()
+			self.newBlock = json.loads(json.dumps(self.newBlock))
+			digest.update(json.dumps(self.newBlock))
+			if signer.verify(digest, json_message['content'][0].decode('base64')):
 				# parse values
 				raw_pubkey = self.received_transaction_from[peer].replace('-----BEGIN PUBLIC KEY-----', '').replace('\n', '').replace('-----END PUBLIC KEY-----', '')
 				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
@@ -227,7 +275,7 @@ class Peer(Thread):
 
 				self.getPeers(spec_peer,True)
 
-			elif command == "send message":
+			elif command == "send":
 				self.sendMessage()
 			elif command == "broadcast message":
 				self.broadcastMessage()
@@ -251,7 +299,7 @@ class Peer(Thread):
 				logger.info("Connected to community peer",
 					extra={"addr":self.community_ip[0], "port":str(self.community_ip[1])})
 				print "Connected: ", self.community_ip[0], str(self.community_ip[1])
-				message = (self.ip_addr,self.port,self.key.publickey().exportKey())
+				message = (self.ip_addr,self.port,self.pubkey)
 				self.peers[self.community_ip].sendall(pickle.dumps(message))
 			except:
 				print "Community server down"
@@ -265,7 +313,7 @@ class Peer(Thread):
 				logger.info("Connected to peer",
 					extra={"addr":addr[0], "port":str(addr[1])})
 				print "Connected: ", addr[0], str(addr[1])
-				message = (self.key.publickey().exportKey())
+				message = (self.pubkey)
 				self.sendMessage(addr[0],addr[1],pickle.dumps(message),7) #reply to newly connected peer with public key
 				
 
@@ -301,7 +349,7 @@ class Peer(Thread):
 				random_generator = Random.new().read
 				message = self.public_key_list[addr].publickey().encrypt(message,random_generator)[0].encode('base64', 'strict')
 
-			packet = {u'_owner': self.key.publickey().exportKey(), u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
+			packet = {u'_owner': self.pubkey, u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
 			raw_string = json.dumps(packet)
 				
 			ssnd = self.peers[(ip,port)]
@@ -332,7 +380,7 @@ class Peer(Thread):
 				random_generator = Random.new().read
 				message = self.public_key_list[addr].publickey().encrypt(message,random_generator)[0].encode('base64', 'strict')
 			
-			packet = {u'_owner': self.key.publickey().exportKey(), u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
+			packet = {u'_owner': self.pubkey, u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
 			raw_string = json.dumps(packet)
 
 			if addr != (self.ip_addr, self.port) and addr != self.community_ip:
