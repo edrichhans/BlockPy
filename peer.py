@@ -109,7 +109,8 @@ class Peer(Thread):
 
 							if category == str(1):	#waiting for transaction
 								json_message['content'] = RSA.importKey(self.privkey).decrypt(json_message['content'].decode("base64"))
-								message = json.dumps(json_message)
+								print json_message
+								# message = json.dumps(json_message)
 
 								self.waitForTxn(json_message, socket, message)
 
