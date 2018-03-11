@@ -397,9 +397,13 @@ class Peer(Thread):
 
 	def getTxn(self):
 		txn = input("Txn number? ")
-		if verifyTxn(txn, self.conn, self.cur):
-			logger.info('Transaction #%s verified!', str(txn))
-			print 'Transaction #' + str(txn) + ' verified!'
+		try:
+			if verifyTxn(txn, self.conn, self.cur):
+				logger.info('Transaction #%s verified!', str(txn))
+				print 'Transaction #' + str(txn) + ' verified!'
+		except Exception as e:
+			print e
+
 
 #main code to run when running peer.py
 #include in your input the hostname and the port you want your peer to run in
