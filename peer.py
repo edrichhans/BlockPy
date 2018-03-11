@@ -153,46 +153,46 @@ class Peer(Thread):
 					# 	del self.peers[socket.getpeername()]
 					# 	continue
 
-	def myconverter(self, o):
-	    if isinstance(o, datetime.datetime):
-	        return o.__str__()
+	# def myconverter(self, o):
+	#     if isinstance(o, datetime.datetime):
+	#         return o.__str__()
 
-	def checkTxnExists(self, json_message):
-		chain = readChainSql(self.conn, self.cur)
-		blockCount = len(chain)
-		chain = json.loads(json.dumps(chain,default=self.myconverter))
-		for i in range(1,blockCount):
-			for j in range(chain[i]['contents']['txnCount']):
-				content = json.loads(eval(chain[i]['contents']['blockTxn'])[j]['_content'])
-				owner = eval(chain[i]['contents']['blockTxn'])[j]['_owner']
-				if json_message['content'] == content and json_message['_owner'] == owner:
-					return True
-		return False
+	# def checkTxnExists(self, json_message):
+	# 	chain = readChainSql(self.conn, self.cur)
+	# 	blockCount = len(chain)
+	# 	chain = json.loads(json.dumps(chain,default=self.myconverter))
+	# 	for i in range(1,blockCount):
+	# 		for j in range(chain[i]['contents']['txnCount']):
+	# 			content = json.loads(eval(chain[i]['contents']['blockTxn'])[j]['_content'])
+	# 			owner = eval(chain[i]['contents']['blockTxn'])[j]['_owner']
+	# 			if json_message['content'] == content and json_message['_owner'] == owner:
+	# 				return True
+	# 	return False
 
 
 	def waitForTxn(self, json_message, socket, message):
 		try:
-			txnexists = self.checkTxnExists(json_message)
-			if not txnexists:
-				owner = json_message['_owner']
-				self.received_transaction_from[socket.getpeername()] = owner
-				self.messages.append(message)
-				if len(self.messages) >= self.max_txns:
-					# create new block
-					self.newBlock = create(self.messages, self.conn, self.cur)
-					for peer in self.received_transaction_from:
-						# return block for verification
-						self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
-						logger.info("Block returned for verification",
-							extra={"addr": peer[0], "port": peer[1]})
-						print 'Block returned for verification to: ', str(peer[0]), str(peer[1])
-			else:
-				packet = {u'_category': "8", u'content':"Content already exists! Aborting transaction."}
-				raw_string = json.dumps(packet)
-				try:
-					socket.sendall(raw_string)
-				except Exception as e:
-					print e
+			# txnexists = self.checkTxnExists(json_message)
+			# if not txnexists:
+			owner = json_message['_owner']
+			self.received_transaction_from[socket.getpeername()] = owner
+			self.messages.append(message)
+			if len(self.messages) >= self.max_txns:
+				# create new block
+				self.newBlock, self.txnList = create(self.messages, self.conn, self.cur)
+				for peer in self.received_transaction_from:
+					# return block for verification
+					self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
+					logger.info("Block returned for verification",
+						extra={"addr": peer[0], "port": peer[1]})
+					print 'Block returned for verification to: ', str(peer[0]), str(peer[1])
+			# else:
+			# 	packet = {u'_category': "8", u'content':"Content already exists! Aborting transaction."}
+			# 	raw_string = json.dumps(packet)
+			# 	try:
+			# 		socket.sendall(raw_string)
+			# 	except Exception as e:
+			# 		print e
 		except Exception as e:
 			logger.error("Error sending file", exc_info=True)
 			print "SEND ERROR: ", e
@@ -231,6 +231,7 @@ class Peer(Thread):
 				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
 				nonce = json_message['content'][1]
 				# get the difference of
+				print self.newBlock
 				self.potential_miners[peer] = abs(int(self.newBlock['blockHash']+nonce, 36) - int(p[:96], 36))
 				print self.potential_miners
 
