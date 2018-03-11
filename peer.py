@@ -1,6 +1,6 @@
 import json, socket, sys, getopt, select
 from threading import Thread
-from main import create, addToChain, connect, disconnect, addToTxns
+from main import create, addToChain, connect, disconnect, addToTxns, verifyTxn
 from hashMe import hashMe
 from Crypto.PublicKey import RSA
 from Crypto import Random
@@ -235,6 +235,8 @@ class Peer(Thread):
 				self.broadcastMessage()
 			elif command == 'disconnect':
 				disconnect(self.conn, self.cur)
+			elif command == 'verify':
+				self.getTxn()
 			else:
 				print "Unknown command"
 
@@ -343,6 +345,12 @@ class Peer(Thread):
 					ssnd.sendall(raw_string)
 				except Exception as e:
 					print e
+
+	def getTxn(self):
+		txn = input("Txn number? ")
+		if verifyTxn(txn, self.conn, self.cur):
+			logger.info('Transaction #%s verified!', str(txn))
+			print 'Transaction #' + str(txn) + ' verified!'
 
 #main code to run when running peer.py
 #include in your input the hostname and the port you want your peer to run in

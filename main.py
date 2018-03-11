@@ -1,6 +1,6 @@
 import time, json, psycopg2
 from sys import argv, exit
-from block import makeBlock, makeTxn
+from block import makeBlock, makeTxn, createMerkle
 from checking import checkChain, checkBlockValidity
 from hashMe import hashMe
 from chain import readChainSql, viewChainSql, writeChainSql, writeTxnsSql
@@ -86,4 +86,30 @@ def addToTxns(txns, conn, cur, blockNumber):
     print 'Writing to Txns Table...\n'
     writeTxnsSql(txns, conn, cur, blockNumber)
     logger.info("txns table updated")
+
+def verifyTxn(txn, conn, cur):
+    getTxnsSql = '''SELECT txn_content FROM txns WHERE
+        block_number = (SELECT block_number from txns WHERE
+        txn_number = %s);'''
+    cur.execute(getTxnsSql, (txn,))
+    txns = [json.loads(i[0]) for i in cur.fetchall()]
+
+    getBlockSql = '''SELECT block_txn FROM blocks WHERE
+        block_number = (SELECT block_number from txns WHERE
+        txn_number = %s);'''
+    cur.execute(getBlockSql, (txn,))
+    blockMerkle = cur.fetchone()[0]
+
+    generatedMerkle = createMerkle(txns)
+
+    if generatedMerkle != blockMerkle:
+        logger.warn('Generated Merkle does not match contents of block. Generated Merkle: %s. Expected: %s',
+                generatedMerkle, blockMerkle)
+        raise Exception('Generated Merkle does not match contents of block. Generated Merkle: %s. Expected: %s'%
+                (generatedMerkle, blockMerkle))
+    return True
+
+
+
+
 
