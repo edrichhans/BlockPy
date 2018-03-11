@@ -1,5 +1,5 @@
 import json, psycopg2, random, string, re
-from datetime import date
+from datetime import date, datetime
 from collections import OrderedDict
 from hashMe import hashMe
 
@@ -28,7 +28,8 @@ def readChainSql(conn, cur):
     return newChain
 
 def checkIfEmpty(conn, cur):
-    createTableSql = 'CREATE TABLE IF NOT EXISTS blocks(block_number SERIAL PRIMARY KEY, block_hash TEXT NOT NULL, parent_hash TEXT, block_txn TEXT, timestamp TIMESTAMP, txn_count INTEGER)'
+    createTableSql = 'CREATE TABLE IF NOT EXISTS blocks(block_number SERIAL PRIMARY KEY, block_hash TEXT NOT NULL, parent_hash TEXT, block_txn TEXT, timestamp TIMESTAMP, txn_count INTEGER);'
+    createTableSql += 'CREATE TABLE IF NOT EXISTS txns(txn_number SERIAL PRIMARY KEY, txn_content TEXT, block_number INTEGER, timestamp TIMESTAMP);'
     cur.execute(createTableSql)
     conn.commit()
 
@@ -62,6 +63,15 @@ def writeChainSql(block, conn, cur):
     contents = block['contents']
     cur.execute(insertSql, (block['blockHash'], contents['parentHash'], contents['blockTxn'], contents['timestamp'], contents['txnCount']))
     blockNumber = cur.fetchone()[0]
-    # if blockNumber == contents['blockNumber']:
-    #     print "Block Numbers match!"
+    conn.commit()
+    return blockNumber
+
+def writeTxnsSql(messages, conn, cur, blockNumber):
+    insertSql = ''
+    values = []
+    for i in messages:
+        insertSql += '''INSERT INTO txns("txn_content", "block_number", "timestamp")
+            VALUES(%s, %s, %s) RETURNING "txn_content";'''
+        values += [json.dumps(i), blockNumber, str(datetime.now())]
+    cur.execute(insertSql, values)
     conn.commit()

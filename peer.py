@@ -1,6 +1,6 @@
 import json, socket, sys, getopt, select
 from threading import Thread
-from main import create, addToChain, connect, disconnect
+from main import create, addToChain, connect, disconnect, addToTxns
 from hashMe import hashMe
 from Crypto.PublicKey import RSA
 from Crypto import Random
@@ -35,9 +35,10 @@ class Peer(Thread):
 		self.port = port
 		self.received_transaction_from = {}
 		self.messages = []
+		self.txnList = []
 		self.potential_miners = {}
 		self.sim = sim
-		self.max_txns = 3
+		self.max_txns = 2
 		self.conn, self.cur = connect()
 		self.miner = None
 		self.public_key_list = {}
@@ -142,7 +143,7 @@ class Peer(Thread):
 			self.messages.append(message)
 			if len(self.messages) >= self.max_txns:
 				# create new block
-				self.newBlock = create(self.messages, self.conn, self.cur)
+				self.newBlock, self.txnList = create(self.messages, self.conn, self.cur)
 				for peer in self.received_transaction_from:
 					# return block for verification
 					self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
@@ -197,8 +198,9 @@ class Peer(Thread):
 
 		# if all blocks are verified
 		if len(self.received_transaction_from) == 0:
-    		#commented out for simulation purposes
-			addToChain(self.newBlock, self.conn, self.cur)
+			#commented out for simulation purposes
+			blockNumber = addToChain(self.newBlock, self.conn, self.cur)
+			addToTxns(self.txnList, self.conn, self.cur, blockNumber)
 			self.messages = []
 			self.received_transaction_from = {}
 

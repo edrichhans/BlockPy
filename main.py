@@ -3,7 +3,7 @@ from sys import argv, exit
 from block import makeBlock, makeTxn
 from checking import checkChain, checkBlockValidity
 from hashMe import hashMe
-from chain import readChainSql, viewChainSql, writeChainSql
+from chain import readChainSql, viewChainSql, writeChainSql, writeTxnsSql
 from config import config
 from blockpy_logging import logger
 
@@ -67,19 +67,23 @@ def create(message, conn, cur):
         txn['content'] = json.dumps(txn['content'])
         txnList.append(makeTxn(txn['_owner'], txn['_recipient'], txn['content']))
     newBlock = makeBlock(txnList, chain)
-    # print 'newBlock', newBlock['contents']
-    logger.info("New block generated",
-        extra={"newBlock": newBlock})
+
     if (checkBlockValidity(newBlock, chain[-1])):
         chain.append(newBlock)
         if (checkChain(chain)):
             print "Chain is valid!"
             logger.info("Chain is valid")
             # viewChainSql(chain)
-    return newBlock
+    return newBlock, txnList
 
 def addToChain(newBlock, conn, cur):
-    print 'Writing to DB...\n'
-    writeChainSql(newBlock, conn, cur)
-    logger.info("Database updated")
+    print 'Writing to Blockchain Table...\n'
+    blockNumber = writeChainSql(newBlock, conn, cur)
+    logger.info("blocks table updated")
+    return blockNumber
+
+def addToTxns(txns, conn, cur, blockNumber):
+    print 'Writing to Txns Table...\n'
+    writeTxnsSql(txns, conn, cur, blockNumber)
+    logger.info("txns table updated")
 

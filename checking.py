@@ -1,11 +1,10 @@
 from hashMe import hashMe
-from blockpy_logging import logging
+from blockpy_logging import logger
 
 def checkBlockHash(block):
     # Raise an exception if the hash does not match the block contents
     expectedHash = hashMe( block['contents'] )
     if block['blockHash']!=expectedHash:
-        # print block['contents']
         logger.warn("Hash does not match contents of block %s. BlockHash: %s. Expected: %s",
             block['contents']['blockNumber'], block['blockHash'], expectedHash)
         raise Exception('Hash does not match contents of block %s. BlockHash: %s. Expected: %s'%
