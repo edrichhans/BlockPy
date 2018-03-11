@@ -231,9 +231,8 @@ class Peer(Thread):
 				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
 				nonce = json_message['content'][1]
 				# get the difference of
-				print self.newBlock
 				self.potential_miners[peer] = abs(int(self.newBlock['blockHash']+nonce, 36) - int(p[:96], 36))
-				print self.potential_miners
+				# print self.potential_miners
 
 				del self.received_transaction_from[peer]
 				logger.info("Block signature verified",
