@@ -26,6 +26,7 @@ class Community_Peer(Thread):
 		self.conn, self.cur = connect()
 		self.public_key_list = {}
 		self.public_key_list[(self.ip_addr,self.port)] = self.key.publickey() #add community public key to public key list
+		self.miner = None
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -51,10 +52,10 @@ class Community_Peer(Thread):
 					conn, addr = self.srcv.accept()
 					self.peers[addr] = conn
 					print "\nEstablished connection with: ", addr
-
+					
 
 				else:
-					#receive the public key form the recently connected peer
+					#receive the public key from the recently connected peer
 					message = socket.recv(4096)
 					try:
 						peer_info = pickle.loads(message)
@@ -70,7 +71,16 @@ class Community_Peer(Thread):
 					for addr in self.public_key_list:
 						print str(addr) + self.public_key_list[addr].exportKey()
 					print "_______________"
-					self.broadcastMessage(pickle.dumps(self.public_key_list),6)					
+					self.broadcastMessage(pickle.dumps(self.public_key_list),6)	
+					if (self.ip_addr,self.port) in self.public_key_list and len(self.public_key_list) < 3:
+						for addr in self.public_key_list:
+							if addr != (self.ip_addr, self.port):
+								self.miner = addr
+								
+								print 'Current miner is set to: ', self.miner	
+					if self.miner is not None:
+						self.broadcastMessage(self.miner, 5)
+						print 'Current miner is set to: ', self.miner	
 
 					# elif (message != ""):
 						#do something with the message
@@ -184,9 +194,10 @@ class Community_Peer(Thread):
 		if not category:
 			category = raw_input("category: ")
 
-		packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
-		raw_string = json.dumps(packet)
+		# print self.peers
 		for addr in self.peers:
+			packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
+			raw_string = json.dumps(packet)
 			if addr != (self.ip_addr, self.port):
 				ssnd = self.peers[addr]
 				try:
