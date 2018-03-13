@@ -395,14 +395,28 @@ class Peer(Thread):
 				except Exception as e:
 					print e
 
-	def getTxn(self):
-		txn = input("Txn number? ")
+	def getTxn(self, txn=None):
+		if txn is None:
+			txn = input("Txn number? ")
+		else:
+			try:
+				txn = int(txn)
+			except Exception as e:
+				logger.error('txn number not recognized',  exc_info=True)
+				return False
 		try:
 			if verifyTxn(txn, self.conn, self.cur):
 				logger.info('Transaction #%s verified!', str(txn))
 				print 'Transaction #' + str(txn) + ' verified!'
+				return True
+			else:
+				logger.warn('Transaction #%s failed verification!', str(txn))
+				print 'Transaction #' + str(txn) + ' failed verification!'
+				return False
 		except Exception as e:
+			logger.error('Verify transaction error',  exc_info=True)
 			print e
+			return False
 
 
 #main code to run when running peer.py
