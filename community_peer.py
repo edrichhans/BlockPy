@@ -56,39 +56,43 @@ class Community_Peer(Thread):
 
 				else:
 					#receive the public key from the recently connected peer
-					message = socket.recv(4096)
-					try:
-						peer_info = pickle.loads(message)
-						sender_public_key = RSA.importKey(peer_info[2])
-						self.public_key_list[peer_info[0],peer_info[1]] = sender_public_key
-						
-						
-					# try:
-					except:
-						print "invalid format pubkey"
-					print "_______________"
-					print "Public Key List"
-					for addr in self.public_key_list:
-						print str(addr) + self.public_key_list[addr].exportKey()
-					print "_______________"
-					self.broadcastMessage(pickle.dumps(self.public_key_list),6)	
-					if (self.ip_addr,self.port) in self.public_key_list and len(self.public_key_list) < 3:
+					recv_buffer = ""
+					messages = socket.recv(4096)
+					recv_buffer = recv_buffer + messages
+					recv_buffer_split = recv_buffer.split('\0')
+					for message in recv_buffer_split:
+						try:
+							peer_info = pickle.loads(message)
+							sender_public_key = RSA.importKey(peer_info[2])
+							self.public_key_list[peer_info[0],peer_info[1]] = sender_public_key
+							
+							
+						# try:
+						except:
+							print "invalid format pubkey"
+						print "_______________"
+						print "Public Key List"
 						for addr in self.public_key_list:
-							if addr != (self.ip_addr, self.port):
-								self.miner = addr
-								
-								print 'Current miner is set to: ', self.miner	
-					if self.miner is not None:
-						self.broadcastMessage(self.miner, 5)
-						print 'Current miner is set to: ', self.miner	
+							print str(addr) + self.public_key_list[addr].exportKey()
+						print "_______________"
+						self.broadcastMessage(pickle.dumps(self.public_key_list),6)	
+						if (self.ip_addr,self.port) in self.public_key_list and len(self.public_key_list) < 3:
+							for addr in self.public_key_list:
+								if addr != (self.ip_addr, self.port):
+									self.miner = addr
+									
+									print 'Current miner is set to: ', self.miner	
+						if self.miner is not None:
+							self.broadcastMessage(self.miner, 5)
+							print 'Current miner is set to: ', self.miner	
 
-					# elif (message != ""):
-						#do something with the message
-						
-					# except Exception as e:
-					# 	print "Data err", e
-					# 	del self.peers[socket.getpeername()]
-					# 	continue
+						# elif (message != ""):
+							#do something with the message
+							
+						# except Exception as e:
+						# 	print "Data err", e
+						# 	del self.peers[socket.getpeername()]
+						# 	continue
 
 	
 
@@ -176,7 +180,7 @@ class Community_Peer(Thread):
 				
 			ssnd = self.peers[(ip,port)]
 			try:
-				ssnd.sendall(raw_string)
+				ssnd.sendall(raw_string + '\0')
 			except Exception as e:
 				print e
 
@@ -201,7 +205,7 @@ class Community_Peer(Thread):
 			if addr != (self.ip_addr, self.port):
 				ssnd = self.peers[addr]
 				try:
-					ssnd.sendall(raw_string)
+					ssnd.sendall(raw_string + '\0')
 				except Exception as e:
 					print e
 

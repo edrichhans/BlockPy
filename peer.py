@@ -93,70 +93,73 @@ class Peer(Thread):
 
 				else:
 					# try:
-					message = socket.recv(4096)
+					recv_buffer = ""
+					messages = socket.recv(4096)
+					recv_buffer = recv_buffer + messages
+					recv_buffer_split = recv_buffer.split('\0')
+					print recv_buffer_split
+					for message in recv_buffer_split[:-1]:
+						if (message.lower() == "reqpeer"):
+							peersRequest(socket.getpeername(0), socket.getpeername(1))
+						elif (message != ""):
+							# 1: waiting for transaction 		2: waiting for verifyBlock Phase
+							# 3: waiting for signedBlock Phase	4: waiting for distBlockchain
+							if json.loads(message):
+								json_message = json.loads(message)
+								print "\n" + str(socket.getpeername()) + ": " + json.dumps(json_message, indent=4, sort_keys=True)
+								category = str(json_message['_category'])
+								logger.info("Message received",
+									extra={"owner":str(socket.getpeername()), "category": category, "received_message": message})
 
-					if (message.lower() == "reqpeer"):
-						peersRequest(socket.getpeername(0), socket.getpeername(1))
-					elif (message != ""):
-						# 1: waiting for transaction 		2: waiting for verifyBlock Phase
-						# 3: waiting for signedBlock Phase	4: waiting for distBlockchain
-						if json.loads(message):
-							print "HERE"
-							json_message = json.loads(message)
-							print "\n" + str(socket.getpeername()) + ": " + json.dumps(json_message, indent=4, sort_keys=True)
-							category = str(json_message['_category'])
-							logger.info("Message received",
-								extra={"owner":str(socket.getpeername()), "category": category, "received_message": message})
+								if category == str(1):	#waiting for transaction
+									json_message['content'] = RSA.importKey(self.privkey).decrypt(json_message['content'].decode("base64"))
+									print json_message
+									# message = json.dumps(json_message)
 
-							if category == str(1):	#waiting for transaction
-								json_message['content'] = RSA.importKey(self.privkey).decrypt(json_message['content'].decode("base64"))
-								print json_message
-								# message = json.dumps(json_message)
+									self.waitForTxn(json_message, socket, message)
 
-								self.waitForTxn(json_message, socket, message)
+								elif category == str(2):	# verifying block
+									self.verifyBlock(socket, message)
 
-							elif category == str(2):	# verifying block
-								self.verifyBlock(socket, message)
+								elif category == str(3):	#waiting for signedBlock
+									self.waitForSignedBlock(socket, json_message)
 
-							elif category == str(3):	#waiting for signedBlock
-								self.waitForSignedBlock(socket, json_message)
-
-							elif category == str(5):
-								self.miner = json_message['content']
-								logger.info("Current miner updated",
-									extra={"miner": self.miner})
-								print 'Current miner is set to: ', self.miner
-								# print 'IP address of miner is: ', self.port
-							elif category == str(6):	#peer discovery - update list of public keys
-								spec_peer = [] 
-								self.public_key_list = pickle.loads(json_message['content'])
-								print len(self.public_key_list)
-								# if self.community_ip in self.public_key_list and (self.ip_addr,self.port) in self.public_key_list and len(self.public_key_list) < 3:
-								# 	self.miner = (self.ip_addr,self.port)
-								# 	self.broadcastMessage(self.miner, 5)
-								# 	logger.info("Current miner updated",
-								# 	extra={"miner": self.miner})
-								# 	print 'Current miner is set to: ', self.miner
-								if self.counter < 1: #check if peer already had initial connection
-									for addr in self.public_key_list: #connect to specific peers not in the local peer list
-										if addr not in self.peers:
-											spec_peer.append(addr)
-									print spec_peer
-									self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
-									self.counter += 1
-								print self.public_key_list
-							elif category == str(7): #work around for local port limitations , send public keys of 
-								self.public_key_list[socket.getpeername()] = RSA.importKey(pickle.loads(json_message['content'])) #add public key sent by newly connected peer
-								print "Public Key List"
-								for addr in self.public_key_list:
-									print str(addr) + self.public_key_list[addr].exportKey()
-								print "_______________"
-							elif category == str(8):
-								print json_message['content']
-							else:
-								raise ValueError('No such category')
-					else:
-						print str(socket.getpeername()), str(socket)
+								elif category == str(5):
+									self.miner = json_message['content']
+									logger.info("Current miner updated",
+										extra={"miner": self.miner})
+									print 'Current miner is set to: ', self.miner
+									# print 'IP address of miner is: ', self.port
+								elif category == str(6):	#peer discovery - update list of public keys
+									spec_peer = [] 
+									self.public_key_list = pickle.loads(json_message['content'])
+									print len(self.public_key_list)
+									# if self.community_ip in self.public_key_list and (self.ip_addr,self.port) in self.public_key_list and len(self.public_key_list) < 3:
+									# 	self.miner = (self.ip_addr,self.port)
+									# 	self.broadcastMessage(self.miner, 5)
+									# 	logger.info("Current miner updated",
+									# 	extra={"miner": self.miner})
+									# 	print 'Current miner is set to: ', self.miner
+									if self.counter < 1: #check if peer already had initial connection
+										for addr in self.public_key_list: #connect to specific peers not in the local peer list
+											if addr not in self.peers:
+												spec_peer.append(addr)
+										print spec_peer
+										self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
+										self.counter += 1
+									print self.public_key_list
+								elif category == str(7): #work around for local port limitations , send public keys of 
+									self.public_key_list[socket.getpeername()] = RSA.importKey(pickle.loads(json_message['content'])) #add public key sent by newly connected peer
+									print "Public Key List"
+									for addr in self.public_key_list:
+										print str(addr) + self.public_key_list[addr].exportKey()
+									print "_______________"
+								elif category == str(8):
+									print json_message['content']
+								else:
+									raise ValueError('No such category')
+						else:
+							print str(socket.getpeername()), str(socket)
 					# except Exception as e:
 					# 	print "Data err", e
 					# 	del self.peers[socket.getpeername()]
@@ -371,7 +374,7 @@ class Peer(Thread):
 				
 			ssnd = self.peers[(ip,port)]
 			try:
-				ssnd.sendall(raw_string)
+				ssnd.sendall(raw_string + '\0')
 			except Exception as e:
 				print e
 
@@ -403,7 +406,7 @@ class Peer(Thread):
 			if addr != (self.ip_addr, self.port) and addr != self.community_ip:
 				ssnd = self.peers[addr]
 				try:
-					ssnd.sendall(raw_string)
+					ssnd.sendall(raw_string + '\0')
 				except Exception as e:
 					print e
 
