@@ -402,7 +402,8 @@ class Peer(Thread):
 				logger.info('Transaction #%s verified!', str(txn))
 				print 'Transaction #' + str(txn) + ' verified!'
 		except Exception as e:
-			print e
+			logger.error("Verification error", exc_info=True)
+			print 'Verification error:', e
 
 
 #main code to run when running peer.py

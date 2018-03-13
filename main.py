@@ -92,7 +92,7 @@ def verifyTxn(txn, conn, cur):
         block_number = (SELECT block_number from txns WHERE
         txn_number = %s);'''
     cur.execute(getTxnsSql, (txn,))
-    txns = [json.loads(i[0]) for i in cur.fetchall()]
+    txns = [i[0] for i in cur.fetchall()]
 
     getBlockSql = '''SELECT block_txn FROM blocks WHERE
         block_number = (SELECT block_number from txns WHERE
