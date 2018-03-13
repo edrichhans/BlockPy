@@ -29,7 +29,7 @@ def readChainSql(conn, cur):
 
 def checkIfEmpty(conn, cur):
     createTableSql = 'CREATE TABLE IF NOT EXISTS blocks(block_number SERIAL PRIMARY KEY, block_hash TEXT NOT NULL, parent_hash TEXT, block_txn TEXT, timestamp TIMESTAMP, txn_count INTEGER);'
-    createTableSql += 'CREATE TABLE IF NOT EXISTS txns(txn_number SERIAL PRIMARY KEY, txn_content TEXT, block_number INTEGER, timestamp TIMESTAMP);'
+    createTableSql += 'CREATE TABLE IF NOT EXISTS txns(txn_number SERIAL NOT NULL PRIMARY KEY, txn_content json NOT NULL, block_number INTEGER NOT NULL, timestamp TIMESTAMP NOT NULL);'
     cur.execute(createTableSql)
     conn.commit()
 

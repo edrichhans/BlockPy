@@ -415,7 +415,7 @@ class Peer(Thread):
 				return False
 		except Exception as e:
 			logger.error('Verify transaction error',  exc_info=True)
-			print e
+			print 'Verification error:', e
 			return False
 
 
