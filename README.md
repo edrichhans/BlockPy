@@ -37,12 +37,12 @@ Returns the block at the specified id (block_number) as a JSON object.
 ### `POST /verify`
 Verifies the transaction given the txn number using the `txn` parameter.
 Returns `true` if verified, else returns `false`.
-`curl http://localhost:5002/verify -d "txn=1" -X POST -v`
+* Example: `curl http://localhost:5002/verify -d "txn=1" -X POST -v`
 
 ### `POST /insert`
 Inserts a transaction given the content using the `content` parameter.
 Returns `true` if verified, else returns `false`.
-`curl http://localhost:5002/insert -d "content=<transaction contents here>" -X POST -v`
+* Example: `curl http://localhost:5002/insert -d "content=<transaction contents here>" -X POST -v`
 
 
 ## Commands
