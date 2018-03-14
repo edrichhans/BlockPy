@@ -132,7 +132,7 @@ class Peer(Thread):
 									# print 'IP address of miner is: ', self.port
 								elif category == str(6):	#peer discovery - update list of public keys
 									spec_peer = [] 
-									self.public_key_list = pickle.loads(json_message['content'])
+									templist = pickle.loads(json_message['content'])
 									print len(self.public_key_list)
 									# if self.community_ip in self.public_key_list and (self.ip_addr,self.port) in self.public_key_list and len(self.public_key_list) < 3:
 									# 	self.miner = (self.ip_addr,self.port)
@@ -141,9 +141,10 @@ class Peer(Thread):
 									# 	extra={"miner": self.miner})
 									# 	print 'Current miner is set to: ', self.miner
 									if self.counter < 1: #check if peer already had initial connection
-										for addr in self.public_key_list: #connect to specific peers not in the local peer list
+										for addr in templist: #connect to specific peers not in the local peer list
 											if addr not in self.peers:
 												spec_peer.append(addr)
+												self.public_key_list[addr] = templist[addr]
 										print spec_peer
 										self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
 										self.counter += 1
@@ -337,8 +338,8 @@ class Peer(Thread):
 				
 
 	def sendMessage(self, ip=None, port=None, message=None, category=None):
-		for addr in self.peers:
-			print addr
+		for addr in self.public_key_list:
+			print addr,":",self.public_key_list[addr].exportKey()
 
 		while not ip or ip == '':
 			ip = raw_input("IP Address: ")
@@ -396,7 +397,7 @@ class Peer(Thread):
 			if not (category>0 and category<9):
 					raise ValueError('Category input not within bounds')
 
-		for addr in self.peers:
+		for addr in self.public_key_list:
 
 			if category == 1:
 				random_generator = Random.new().read

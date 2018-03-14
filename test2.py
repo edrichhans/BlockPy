@@ -22,12 +22,12 @@ class Peer(Thread):
 				raise
 
 		try:
-			with open("keys/privkey1.txt","r") as fpriv:
+			with open("keys/privkey2.txt","r") as fpriv:
 				key = fpriv.read()
 				self.privkey = RSA.importKey(key)
 				self.privkey = self.privkey.exportKey()
 
-			with open("keys/pubkey1.txt","r") as fpub:
+			with open("keys/pubkey2.txt","r") as fpub:
 				key = fpub.read()
 				self.pubkey = RSA.importKey(key)
 				self.pubkey = self.pubkey.exportKey()
@@ -37,12 +37,12 @@ class Peer(Thread):
 			self.privkey = self.key.exportKey()
 			self.pubkey = self.key.publickey().exportKey()
 
-			with open("keys/pubkey1.txt","w") as fpub:
+			with open("keys/pubkey2.txt","w") as fpub:
 				fpub.write(self.pubkey)
 				logger.info("Created public key",
 					extra={"publickey": self.pubkey})
 
-			with open("keys/privkey1.txt","w") as fpriv:
+			with open("keys/privkey2.txt","w") as fpriv:
 				fpriv.write(self.privkey)
 				logger.info("Created private key")
 
@@ -429,7 +429,7 @@ def main(argv):
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
 	ip_addr = "127.0.0.1"#s.getsockname()[0]
-	port = 9000
+	port = 4000
 	sim = False
 
 	try:
