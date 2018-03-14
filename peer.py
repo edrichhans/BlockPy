@@ -299,8 +299,7 @@ class Peer(Thread):
 			elif command == 'verify':
 				self.getTxn()
 			elif command == 'default':
-				print self.miner
-				self.sendMessage(self.miner[0],self.miner[1])
+				self.sendMessage(self.miner[0],self.miner[1], category=1)
 			else:
 				print "Unknown command"
 
