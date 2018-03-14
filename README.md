@@ -14,14 +14,43 @@ host=localhost
 database=blockpy
 user=postgres
 password=toor
-port=10000
+port=5432
 ```
 Set the port to `5432` for default postgre port.
 
+## API
+Run `python webapp.py`, which calls a `Peer` instance from `peer.py`.
+Currently runs on http://localhost:5002
+
+### `GET /txns`
+Returns the list of transactions as a JSON object.
+
+### `GET /txns/<id>`
+Returns the transaction at the specified id (txn_number).
+
+### `GET /blocks`
+Returns the list of blocks in the blockchain as a JSON object.
+
+### `GET /blocks/<id>`
+Returns the block at the specified id (block_number).
+
+### `POST /verify`
+Verifies the transaction given the txn number using the `txn` parameter.
+`curl http://localhost:5002/verify -d "txn=1" -X POST -v`
+
+### `POST /insert`
+Inserts a transaction given the content using the `content` parameter.
+`curl http://localhost:5002/insert -d "content=<transaction contents here>" -X POST -v`
+
+
 ## Commands
+These are the commands accepted by `raw_input` if `peer.py` is run from the terminal.
+
+### `default`
+Send a message to the set miner(s) as a transaction. 
 
 ### `send`
-Send a JSON message to a specific machine using IP address and port. 
+Send a message to a specific machine using IP address and port as a transaction. 
 
 ### `broadcast message`
 Broadcasts a message to all connected peers
