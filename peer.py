@@ -299,7 +299,7 @@ class Peer(Thread):
 			elif command == 'verify':
 				self.getTxn()
 			elif command == 'default':
-				self.sendMessage(self.miner[0],self.miner[1], category=1)
+				self.sendToMiner()
 			else:
 				print "Unknown command"
 
@@ -374,11 +374,14 @@ class Peer(Thread):
 			ssnd = self.peers[(ip,port)]
 			try:
 				ssnd.sendall(raw_string + '\0')
+				return True
 			except Exception as e:
 				print e
+				return False
 
 		else:
 			print "Address not recognized"
+			return False
 
 	def broadcastMessage(self, message=None, category=None):
 		for addr in self.peers:
@@ -431,6 +434,10 @@ class Peer(Thread):
 			logger.error('Verify transaction error',  exc_info=True)
 			print 'Verification error:', e
 			return False
+
+	def sendToMiner(self, message=None):
+		return self.sendMessage(self.miner[0],self.miner[1], message=message, category=1)
+
 
 
 #main code to run when running peer.py

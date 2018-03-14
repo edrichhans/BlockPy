@@ -1,4 +1,4 @@
-import psycopg2, sys, json, csv, datetime
+import psycopg2, sys, json, csv, datetime, unicodedata
 from config import config
 from peer import Peer
 from flask import Flask, request
@@ -18,6 +18,7 @@ api = Api(app)
 
 parser = reqparse.RequestParser()
 parser.add_argument('txn')
+parser.add_argument('content')
 
 def myconverter(o):
     if isinstance(o, datetime.datetime):
@@ -77,11 +78,20 @@ class Verify(Resource):
         txn = args['txn']
         return myself.getTxn(txn)
 
+class Insert(Resource):
+    def post(self):
+        args = parser.parse_args()
+        content = args['content']
+        content = unicodedata.normalize('NFKD', content).encode('ascii','ignore')
+        print content
+        return myself.sendToMiner(content)
+
 api.add_resource(Txns, '/txns')
 api.add_resource(Txns_id, '/txns/<id>')
 api.add_resource(Blocks, '/blocks')
 api.add_resource(Blocks_id, '/blocks/<id>')
 api.add_resource(Verify, '/verify')
+api.add_resource(Insert, '/insert')
 
 
 if __name__ == '__main__':
