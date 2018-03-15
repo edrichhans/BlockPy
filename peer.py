@@ -307,10 +307,7 @@ class Peer(Thread):
 			elif command == 'verify':
 				self.getTxn()
 			elif command == 'default':
-				if self.miner in self.port_equiv_reverse.keys():
-					self.sendMessage(self.port_equiv_reverse[self.miner][0],self.port_equiv_reverse[self.miner][1], category=1)
-				else:
-					self.sendMessage(self.miner[0],self.miner[1], category=1)
+				self.sendToMiner()
 			else:
 				print "Unknown command"
 
@@ -446,8 +443,11 @@ class Peer(Thread):
 			print 'Verification error:', e
 			return False
 
-	def sendToMiner(self, message=None):
-		return self.sendMessage(self.miner[0],self.miner[1], message=message, category=1)
+	def sendToMiner(self):
+		if self.miner in self.port_equiv_reverse.keys():
+			return self.sendMessage(self.port_equiv_reverse[self.miner][0],self.port_equiv_reverse[self.miner][1], category=1)
+		else:
+			return self.sendMessage(self.miner[0],self.miner[1], category=1)
 
 
 
