@@ -22,12 +22,12 @@ class Peer(Thread):
 				raise
 
 		try:
-			with open("keys/privkey3.txt","r") as fpriv:
+			with open("keys/privkey1.txt","r") as fpriv:
 				key = fpriv.read()
 				self.privkey = RSA.importKey(key)
 				self.privkey = self.privkey.exportKey()
 
-			with open("keys/pubkey3.txt","r") as fpub:
+			with open("keys/pubkey1.txt","r") as fpub:
 				key = fpub.read()
 				self.pubkey = RSA.importKey(key)
 				self.pubkey = self.pubkey.exportKey()
@@ -37,12 +37,12 @@ class Peer(Thread):
 			self.privkey = self.key.exportKey()
 			self.pubkey = self.key.publickey().exportKey()
 
-			with open("keys/pubkey3.txt","w") as fpub:
+			with open("keys/pubkey1.txt","w") as fpub:
 				fpub.write(self.pubkey)
 				logger.info("Created public key",
 					extra={"publickey": self.pubkey})
 
-			with open("keys/privkey3.txt","w") as fpriv:
+			with open("keys/privkey1.txt","w") as fpriv:
 				fpriv.write(self.privkey)
 				logger.info("Created private key")
 
@@ -58,6 +58,8 @@ class Peer(Thread):
 		self.conn, self.cur = connect()
 		self.miner = None
 		self.public_key_list = {}
+		self.port_equiv = {}
+		self.port_equiv_reverse = {}
 		self.counter = 0 #for making sure that a newly connected node only connects to other peers once
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -150,7 +152,10 @@ class Peer(Thread):
 										self.counter += 1
 									print self.public_key_list
 								elif category == str(7): #work around for local port limitations , send public keys of 
-									self.public_key_list[socket.getpeername()] = RSA.importKey(pickle.loads(json_message['content'])) #add public key sent by newly connected peer
+									self.public_key_list[socket.getpeername()] = RSA.importKey(pickle.loads(json_message['content'])[0]) #add public key sent by newly connected peer
+									self.port_equiv[socket.getpeername()] = (pickle.loads(json_message['content'])[1],pickle.loads(json_message['content'])[2])
+									self.port_equiv_reverse[(pickle.loads(json_message['content'])[1],pickle.loads(json_message['content'])[2])] = socket.getpeername()
+									print self.port_equiv
 									print "Public Key List"
 									for addr in self.public_key_list:
 										print str(addr) + self.public_key_list[addr].exportKey()
@@ -268,6 +273,8 @@ class Peer(Thread):
 
 			# get next miner and broadcast
 			self.miner = min(self.potential_miners)
+			if self.miner in self.port_equiv.keys():
+				self.miner = self.port_equiv[self.miner]
 			self.broadcastMessage(self.miner, 5)
 			logger.info("Current miner updated",
 				extra={"miner": self.miner})
@@ -300,7 +307,11 @@ class Peer(Thread):
 			elif command == 'verify':
 				self.getTxn()
 			elif command == 'default':
-				self.sendMessage(self.miner[0],self.miner[1], category=1)
+				if self.miner in self.port_equiv_reverse.keys():
+					self.sendMessage(self.port_equiv_reverse[self.miner][0],self.port_equiv_reverse[self.miner][1], category=1)
+				else:
+					self.sendMessage(self.miner[0],self.miner[1], category=1)
+				
 			else:
 				print "Unknown command"
 
@@ -334,7 +345,7 @@ class Peer(Thread):
 					extra={"addr":addr[0], "port":str(addr[1])})
 				print "Connected: ", addr[0], str(addr[1])
 				message = (self.pubkey)
-				self.sendMessage(addr[0],addr[1],pickle.dumps(message),7) #reply to newly connected peer with public key
+				self.sendMessage(addr[0],addr[1],pickle.dumps((message,self.ip_addr,self.port)),7) #reply to newly connected peer with public key
 				
 
 	def sendMessage(self, ip=None, port=None, message=None, category=None):
