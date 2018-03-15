@@ -443,11 +443,11 @@ class Peer(Thread):
 			print 'Verification error:', e
 			return False
 
-	def sendToMiner(self):
+	def sendToMiner(self, message=None):
 		if self.miner in self.port_equiv_reverse.keys():
-			return self.sendMessage(self.port_equiv_reverse[self.miner][0],self.port_equiv_reverse[self.miner][1], category=1)
+			return self.sendMessage(self.port_equiv_reverse[self.miner][0],self.port_equiv_reverse[self.miner][1], message=message, category=1)
 		else:
-			return self.sendMessage(self.miner[0],self.miner[1], category=1)
+			return self.sendMessage(self.miner[0],self.miner[1], message=message, category=1)
 
 
 
