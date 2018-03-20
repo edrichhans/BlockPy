@@ -7,11 +7,14 @@ Change ip address and port of commmunity peer before running
 
 import json, socket, sys, getopt, select
 from threading import Thread
-from main import create, addToChain, connect, disconnect
+from main import create, addToChain, connect, disconnect, addToTxns
 from hashMe import hashMe
+from Crypto.Signature import PKCS1_PSS
 from Crypto.PublicKey import RSA
+from Crypto.Hash import SHA256
 from Crypto import Random
 from uuid import uuid1
+from blockpy_logging import logger
 import pickle
 
 class Community_Peer(Thread):
@@ -26,7 +29,14 @@ class Community_Peer(Thread):
 		self.conn, self.cur = connect()
 		self.public_key_list = {}
 		self.public_key_list[(self.ip_addr,self.port)] = self.key.publickey() #add community public key to public key list
+		self.port_equiv = {}
+		self.port_equiv_reverse = {}
+		self.privkey = self.key.exportKey()
 		self.miners = []
+		self.received_transaction_from = {}
+		self.potential_miners = {}
+		self.newBlock = ''
+		self.txnList = []
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -52,24 +62,39 @@ class Community_Peer(Thread):
 					conn, addr = self.srcv.accept()
 					self.peers[addr] = conn
 					print "\nEstablished connection with: ", addr
-					
-
 				else:
 					#receive the public key from the recently connected peer
 					recv_buffer = ""
 					messages = socket.recv(4096)
 					recv_buffer = recv_buffer + messages
 					recv_buffer_split = recv_buffer.split('\0')
-					for message in recv_buffer_split:
+					for message in recv_buffer_split[:-1]:
 						try:
-							peer_info = pickle.loads(message)
-							sender_public_key = RSA.importKey(peer_info[2])
-							self.public_key_list[peer_info[0],peer_info[1]] = sender_public_key
-							
-							
-						# try:
-						except:
-							print "invalid format pubkey"
+							json_message = json.loads(message)
+							print "\n" + str(socket.getpeername()) + ": " + json.dumps(json_message, indent=4, sort_keys=True)
+							category = str(json_message['_category'])
+							logger.info("Message received",
+								extra={"owner":str(socket.getpeername()), "category": category, "received_message": message})
+						except Exception as e:
+							logger.error("Invalid format pubkey", exc_info=True)
+							print "Invalid format pubkey", e
+						
+						try:
+							if category == str(3):
+								self.waitForSignedBlock(socket, json_message)
+
+							elif category == str(4):
+								self.addNewPeer(socket, json_message)
+
+							elif category == str(9):
+								self.returnToVerify(socket, json_message)
+
+							else:
+								raise ValueError('No such category')
+						except Exception as e:
+							logger.error('Category Error', exc_info=True)
+							print 'Category Error', e
+						
 						print "_______________"
 						print "Public Key List"
 						for addr in self.public_key_list:
@@ -95,18 +120,89 @@ class Community_Peer(Thread):
 						# 	del self.peers[socket.getpeername()]
 						# 	continue
 
-	
+	def waitForSignedBlock(self, socket, json_message):
+		# proof here
+		peer = socket.getpeername()
+		if peer in self.port_equiv.keys():
+			peer = self.port_equiv[peer]
+		print 'PEER: ', peer, self.port_equiv_reverse, self.port_equiv
+		if peer in self.received_transaction_from:
+			publickey = RSA.importKey(self.received_transaction_from[peer])
+			signer = PKCS1_PSS.new(publickey)
+			digest = SHA256.new()
+			self.newBlock = json.loads(json.dumps(self.newBlock))
+			digest.update(json.dumps(self.newBlock))
+			if signer.verify(digest, json_message['content'][0].decode('base64')):
+				# parse values
+				raw_pubkey = self.received_transaction_from[peer].replace('-----BEGIN PUBLIC KEY-----', '').replace('\n', '').replace('-----END PUBLIC KEY-----', '')
+				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
+				nonce = json_message['content'][1]
+				# get the difference of
+				self.potential_miners[peer] = abs(int(self.newBlock['blockHash']+nonce, 36) - int(p[:96], 36))
+				# print self.potential_miners
+
+				del self.received_transaction_from[peer]
+				logger.info("Block signature verified",
+					extra={"hash": hashMe(self.newBlock)})
+				print 'Block signature verified: ', hashMe(self.newBlock)
+			else:
+				logger.warn("Block signature not verified")
+				print 'Block signature not verified!'
+		else:
+			logger.warn("Peer is not in received transactions")
+			print 'Peer is not in received transactions!'
+
+		# if all blocks are verified
+		if len(self.received_transaction_from) == 0:
+			#commented out for simulation purposes
+			blockNumber = addToChain(self.newBlock, self.conn, self.cur)
+			addToTxns(self.txnList, self.conn, self.cur, blockNumber)
+			self.messages = []
+			self.received_transaction_from = {}
+
+			# get next miner and broadcast
+			self.miner = min(self.potential_miners)
+			if self.miner in self.port_equiv.keys():
+				self.miner = self.port_equiv[self.miner]
+			self.broadcastMessage(self.miner, 5)
+			logger.info("Current miner updated",
+				extra={"miner": self.miner})
+			print 'Current miner is set to: ', self.miner	
+
+	def addNewPeer(self, socket, json_message):
+		peer_info = pickle.loads(json_message['content'])
+		sender_public_key = RSA.importKey(peer_info[2])
+		self.public_key_list[peer_info[0], peer_info[1]] = sender_public_key
+		self.port_equiv[socket.getpeername()] = (peer_info[0], peer_info[1])
+		self.port_equiv_reverse[(peer_info[0], peer_info[1])] = socket.getpeername()
+		print "Public Key List"
+		for addr in self.public_key_list:
+			print str(addr) + self.public_key_list[addr].exportKey()
+		print "_______________"
+
+	def returnToVerify(self, socket, json_message):
+		content = json.loads(json_message['content'])
+		self.newBlock = content['block']
+		self.txnList = eval(content['txnList'])
+		self.received_transaction_from = eval(content['contributing'])
+		for peer in self.received_transaction_from:
+			# return block for verification
+			print 'AA: ', self.port_equiv_reverse, self.port_equiv, peer
+			if peer in self.port_equiv_reverse.keys():
+				self.sendMessage(self.port_equiv_reverse[peer][0], self.port_equiv_reverse[peer][1], json.dumps(self.newBlock), 2)
+			else:
+				self.sendMessage(peer[0], peer[1], json.dumps(self.newBlock), 2)
+			logger.info("Block returned for verification",
+				extra={"addr": peer[0], "port": peer[1]})
+			print 'Block returned for verification to: ', peer
 
 	def sending(self):
 		while True:
 			command = raw_input("Enter command: ")
 
 			if command == "get peers":
-
 				spec_peer = []
-
 				while True:
-
 					inpeers = raw_input("Connect to specific peer(s)?: ")
 
 					if (inpeers == 'q'):
@@ -128,7 +224,6 @@ class Community_Peer(Thread):
 				disconnect(self.conn, self.cur)
 			else:
 				print "Unknown command"
-
 
 	def __del__(self):
 		for conn in self.peers:
@@ -186,7 +281,9 @@ class Community_Peer(Thread):
 				print e
 
 		else:
-			print "Address not recognized"
+			logger.error("Address not recognized", extra={'IP': ip, 'port': port})
+			print "Address not recognized: ", (ip, port)
+			raise Exception('Address not recognized')
 
 	def broadcastMessage(self, message=None, category=None):
 		# for addr in self.peers:
