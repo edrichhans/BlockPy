@@ -26,7 +26,7 @@ class Community_Peer(Thread):
 		self.conn, self.cur = connect()
 		self.public_key_list = {}
 		self.public_key_list[(self.ip_addr,self.port)] = self.key.publickey() #add community public key to public key list
-		self.miner = None
+		self.miners = []
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -79,12 +79,13 @@ class Community_Peer(Thread):
 						if (self.ip_addr,self.port) in self.public_key_list and len(self.public_key_list) < 3:
 							for addr in self.public_key_list:
 								if addr != (self.ip_addr, self.port):
-									self.miner = addr
+									del self.miners[:]
+									self.miners.append(addr)
 									
-									print 'Current miner is set to: ', self.miner	
-						if self.miner is not None:
-							self.broadcastMessage(self.miner, 5)
-							print 'Current miner is set to: ', self.miner	
+									print 'Current miner is set to: ', self.miners	
+						if self.miners is not None:
+							self.broadcastMessage(self.miners, 5)
+							print 'Current miner is set to: ', self.miners	
 
 						# elif (message != ""):
 							#do something with the message

@@ -1,4 +1,4 @@
-import json, socket, sys, getopt, select, datetime
+import json, socket, sys, getopt, select, datetime, heapq, math
 from threading import Thread
 from main import create, addToChain, connect, disconnect, addToTxns, verifyTxn
 from hashMe import hashMe
@@ -10,6 +10,7 @@ from uuid import uuid1
 import pickle, os, errno
 from blockpy_logging import logger
 from chain import readChainSql
+
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
@@ -56,7 +57,7 @@ class Peer(Thread):
 		self.sim = sim
 		self.max_txns = 2
 		self.conn, self.cur = connect()
-		self.miner = None
+		self.miners = []
 		self.public_key_list = {}
 		self.port_equiv = {}
 		self.port_equiv_reverse = {}
@@ -127,10 +128,10 @@ class Peer(Thread):
 									self.waitForSignedBlock(socket, json_message)
 
 								elif category == str(5):
-									self.miner = json_message['content']
-									logger.info("Current miner updated",
-										extra={"miner": self.miner})
-									print 'Current miner is set to: ', self.miner
+									self.miners = json_message['content']
+									logger.info("Current miners updated",
+										extra={"miners": self.miners})
+									print 'Current miners are set to: ', self.miners
 									# print 'IP address of miner is: ', self.port
 								elif category == str(6):	#peer discovery - update list of public keys
 									spec_peer = [] 
@@ -155,7 +156,6 @@ class Peer(Thread):
 									self.public_key_list[socket.getpeername()] = RSA.importKey(pickle.loads(json_message['content'])[0]) #add public key sent by newly connected peer
 									self.port_equiv[socket.getpeername()] = (pickle.loads(json_message['content'])[1],pickle.loads(json_message['content'])[2])
 									self.port_equiv_reverse[(pickle.loads(json_message['content'])[1],pickle.loads(json_message['content'])[2])] = socket.getpeername()
-									print self.port_equiv
 									print "Public Key List"
 									for addr in self.public_key_list:
 										print str(addr) + self.public_key_list[addr].exportKey()
@@ -272,13 +272,16 @@ class Peer(Thread):
 			self.received_transaction_from = {}
 
 			# get next miner and broadcast
-			self.miner = min(self.potential_miners)
-			if self.miner in self.port_equiv.keys():
-				self.miner = self.port_equiv[self.miner]
-			self.broadcastMessage(self.miner, 5)
-			logger.info("Current miner updated",
-				extra={"miner": self.miner})
-			print 'Current miner is set to: ', self.miner
+			self.miners = sorted(self.potential_miners)[:(int)(len(self.potential_miners)/3)+1]
+			for i, self.miner in enumerate(self.miners):
+				if self.miner in self.port_equiv.keys():
+					print self.port_equiv[self.miner]
+					self.miners[i] = self.port_equiv[self.miner]
+			self.broadcastMessage(self.miners, 5)
+			for self.miner in self.miners:
+				logger.info("Current miner updated",
+					extra={"miner": self.miner})
+				print 'Current miner is set to: ', self.miner
 
 	def sending(self):
 		while True:
@@ -307,7 +310,7 @@ class Peer(Thread):
 			elif command == 'verify':
 				self.getTxn()
 			elif command == 'default':
-				self.sendToMiner()
+				self.sendToMiners()
 			else:
 				print "Unknown command"
 
@@ -388,8 +391,14 @@ class Peer(Thread):
 				return False
 
 		else:
-			print "Address not recognized"
+			print "Address not recognized: "
+			print "IP:"
+			print ip
+			print "Port:"
+			print port
+			print self.port_equiv
 			return False
+			
 
 	def broadcastMessage(self, message=None, category=None):
 		for addr in self.peers:
@@ -443,11 +452,12 @@ class Peer(Thread):
 			print 'Verification error:', e
 			return False
 
-	def sendToMiner(self, message=None):
-		if self.miner in self.port_equiv_reverse.keys():
-			return self.sendMessage(self.port_equiv_reverse[self.miner][0],self.port_equiv_reverse[self.miner][1], message=message, category=1)
-		else:
-			return self.sendMessage(self.miner[0],self.miner[1], message=message, category=1)
+	def sendToMiners(self, message=None):
+		for self.miner in self.miners:
+			if self.miner in self.port_equiv_reverse.keys():
+				return self.sendMessage(self.port_equiv_reverse[self.miner][0],self.port_equiv_reverse[self.miner][1], message=message, category=1)
+			else:
+				return self.sendMessage(self.miner[0],self.miner[1], message=message, category=1)
 
 
 
