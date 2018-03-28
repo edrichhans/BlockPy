@@ -9,23 +9,23 @@ import json, socket, sys, getopt, select
 from threading import Thread
 from main import create, addToChain, connect, disconnect
 from hashMe import hashMe
-from Crypto.PublicKey import RSA
-from Crypto import Random
+from nacl.encoding import HexEncoder
+from nacl.signing import SigningKey, VerifyKey
 from uuid import uuid1
 import pickle
 
 class Community_Peer(Thread):
 
 	def __init__(self,ip_address = '127.0.0.1', port = 5000):
-		random_generator = Random.new().read
-		self.key = RSA.generate(1024, random_generator)
+		self.privkey = SigningKey.generate()
+		self.pubkey = self.privkey.verify_key
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
 		self.messages = []
 		self.conn, self.cur = connect()
 		self.public_key_list = {}
-		self.public_key_list[(self.ip_addr,self.port)] = self.key.publickey() #add community public key to public key list
+		self.public_key_list[(self.ip_addr,self.port)] = self.pubkey #add community public key to public key list
 		self.miner = None
 
 		#socket for receiving messages
@@ -63,7 +63,7 @@ class Community_Peer(Thread):
 					for message in recv_buffer_split:
 						try:
 							peer_info = pickle.loads(message)
-							sender_public_key = RSA.importKey(peer_info[2])
+							sender_public_key = VerifyKey(HexEncoder.decode(peer_info[2]))
 							self.public_key_list[peer_info[0],peer_info[1]] = sender_public_key
 							
 							
@@ -73,9 +73,12 @@ class Community_Peer(Thread):
 						print "_______________"
 						print "Public Key List"
 						for addr in self.public_key_list:
-							print str(addr) + self.public_key_list[addr].exportKey()
+							print str(addr) + self.public_key_list[addr].encode(encoder=HexEncoder)
 						print "_______________"
-						self.broadcastMessage(pickle.dumps(self.public_key_list),6)	
+						encodedKeyList = {}
+						for kis in self.public_key_list.keys():
+							encodedKeyList[kis] = self.public_key_list[kis].encode(encoder=HexEncoder)
+						self.broadcastMessage(pickle.dumps(encodedKeyList),6)	
 						if (self.ip_addr,self.port) in self.public_key_list and len(self.public_key_list) < 3:
 							for addr in self.public_key_list:
 								if addr != (self.ip_addr, self.port):
@@ -168,14 +171,12 @@ class Community_Peer(Thread):
 				print e
 
 		if (ip, port) in self.peers:
-			pubkey = self.key.publickey().exportKey()
-			# pubkey = pubkey.encode('string_escape').replace('\\\\','\\')
-			 #replace with actual public key
+			
 			if not message:
 				message = raw_input("content: ")
 			if not category:
 				category = raw_input("category: ")
-			packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
+			packet = {u'_owner': self.pubkey.encode(encoder=HexEncoder), u'_recipient': 'dummy', u'_category': str(category), u'content':message}
 			raw_string = json.dumps(packet)
 				
 			ssnd = self.peers[(ip,port)]
@@ -191,7 +192,6 @@ class Community_Peer(Thread):
 		# for addr in self.peers:
 		# 	print addr
 
-		pubkey = self.key.publickey().exportKey()
 		if not message:
 			message = raw_input("Message: ")
 
@@ -200,7 +200,7 @@ class Community_Peer(Thread):
 
 		# print self.peers
 		for addr in self.peers:
-			packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
+			packet = {u'_owner': self.pubkey.encode(encoder=HexEncoder), u'_recipient': 'dummy', u'_category': str(category), u'content':message}
 			raw_string = json.dumps(packet)
 			if addr != (self.ip_addr, self.port):
 				ssnd = self.peers[addr]

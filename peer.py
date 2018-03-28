@@ -2,14 +2,12 @@ import json, socket, sys, getopt, select, datetime
 from threading import Thread
 from main import create, addToChain, connect, disconnect, addToTxns, verifyTxn
 from hashMe import hashMe
-from Crypto.PublicKey import RSA
-from Crypto.Signature import PKCS1_PSS
-from Crypto.Hash import SHA256
-from Crypto import Random
+from nacl.encoding import HexEncoder
+from nacl.signing import SigningKey, VerifyKey
+from nacl.hash import sha256
 from uuid import uuid1
 import pickle, os, errno
 from blockpy_logging import logger
-from chain import readChainSql
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
@@ -23,27 +21,23 @@ class Peer(Thread):
 
 		try:
 			with open("keys/privkey.txt","r") as fpriv:
-				key = fpriv.read()
-				self.privkey = RSA.importKey(key)
-				self.privkey = self.privkey.exportKey()
+				key = HexEncoder.decode(fpriv.read())
+				self.privkey = SigningKey(key)
 
 			with open("keys/pubkey.txt","r") as fpub:
-				key = fpub.read()
-				self.pubkey = RSA.importKey(key)
-				self.pubkey = self.pubkey.exportKey()
+				key = HexEncoder.decode(fpub.read())
+				self.pubkey = VerifyKey(key)
 		except:
-			random_generator = Random.new().read
-			self.key = RSA.generate(1024, random_generator)
-			self.privkey = self.key.exportKey()
-			self.pubkey = self.key.publickey().exportKey()
+			self.privkey = SigningKey.generate()
+			self.pubkey = self.privkey.verify_key
 
 			with open("keys/pubkey.txt","w") as fpub:
-				fpub.write(self.pubkey)
+				fpub.write(self.pubkey.encode(encoder=HexEncoder))
 				logger.info("Created public key",
-					extra={"publickey": self.pubkey})
+					extra={"publickey": self.pubkey.encode(encoder=HexEncoder)})
 
 			with open("keys/privkey.txt","w") as fpriv:
-				fpriv.write(self.privkey)
+				fpriv.write(self.privkey.encode(encoder=HexEncoder))
 				logger.info("Created private key")
 
 		self.peers = {}
@@ -114,7 +108,7 @@ class Peer(Thread):
 									extra={"owner":str(socket.getpeername()), "category": category, "received_message": message})
 
 								if category == str(1):	#waiting for transaction
-									json_message['content'] = RSA.importKey(self.privkey).decrypt(json_message['content'].decode("base64"))
+									json_message['content'] = self.public_key_list[socket.getpeername()].verify(json_message['content'].decode('base64'))
 									print json_message
 									# message = json.dumps(json_message)
 
@@ -146,19 +140,19 @@ class Peer(Thread):
 										for addr in templist: #connect to specific peers not in the local peer list
 											if addr not in self.peers:
 												spec_peer.append(addr)
-												self.public_key_list[addr] = templist[addr]
+												self.public_key_list[addr] = VerifyKey(HexEncoder.decode(templist[addr]))
 										print spec_peer
 										self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
 										self.counter += 1
 									print self.public_key_list
 								elif category == str(7): #work around for local port limitations , send public keys of 
-									self.public_key_list[socket.getpeername()] = RSA.importKey(pickle.loads(json_message['content'])[0]) #add public key sent by newly connected peer
+									self.public_key_list[socket.getpeername()] = VerifyKey(HexEncoder.decode(pickle.loads(json_message['content'])[0])) #add public key sent by newly connected peer
 									self.port_equiv[socket.getpeername()] = (pickle.loads(json_message['content'])[1],pickle.loads(json_message['content'])[2])
 									self.port_equiv_reverse[(pickle.loads(json_message['content'])[1],pickle.loads(json_message['content'])[2])] = socket.getpeername()
 									print self.port_equiv
 									print "Public Key List"
 									for addr in self.public_key_list:
-										print str(addr) + self.public_key_list[addr].exportKey()
+										print str(addr) + self.public_key_list[addr].encode(encoder=HexEncoder)
 									print "_______________"
 								elif category == str(8):
 									print json_message['content']
@@ -193,7 +187,7 @@ class Peer(Thread):
 			# txnexists = self.checkTxnExists(json_message)
 			# if not txnexists:
 			owner = json_message['_owner']
-			self.received_transaction_from[socket.getpeername()] = owner
+			self.received_transaction_from[socket.getpeername()] = VerifyKey(HexEncoder.decode(owner))
 			self.messages.append(message)
 			if len(self.messages) >= self.max_txns:
 				# create new block
@@ -223,11 +217,9 @@ class Peer(Thread):
 		# get block
 		block = json.loads(json.loads(message)['content'])
 		# generate fingerprint
-		fingerprint = SHA256.new()
-		fingerprint.update(json.dumps(block))
+		fingerprint = sha256
 		# generate signature
-		signer = PKCS1_PSS.new(RSA.importKey(self.privkey))
-		signature = signer.sign(fingerprint)
+		signature = self.privkey.sign(fingerprint(json.dumps(block)))
 		# send message
 		self.sendMessage(peer[0], peer[1], (signature.encode('base64'), nonce), 3)
 		logger.info("Signed block sent",
@@ -238,14 +230,11 @@ class Peer(Thread):
 		# proof here
 		peer = socket.getpeername()
 		if peer in self.received_transaction_from:
-			publickey = RSA.importKey(self.received_transaction_from[peer])
-			signer = PKCS1_PSS.new(publickey)
-			digest = SHA256.new()
+			verifier = self.received_transaction_from[peer]
 			self.newBlock = json.loads(json.dumps(self.newBlock))
-			digest.update(json.dumps(self.newBlock))
-			if signer.verify(digest, json_message['content'][0].decode('base64')):
+			if verifier.verify(json_message['content'][0].decode('base64')):
 				# parse values
-				raw_pubkey = self.received_transaction_from[peer].replace('-----BEGIN PUBLIC KEY-----', '').replace('\n', '').replace('-----END PUBLIC KEY-----', '')
+				raw_pubkey = self.received_transaction_from[peer].encode(encoder=HexEncoder)
 				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
 				nonce = json_message['content'][1]
 				# get the difference of
@@ -326,7 +315,7 @@ class Peer(Thread):
 				logger.info("Connected to community peer",
 					extra={"addr":self.community_ip[0], "port":str(self.community_ip[1])})
 				print "Connected: ", self.community_ip[0], str(self.community_ip[1])
-				message = (self.ip_addr,self.port,self.pubkey)
+				message = (self.ip_addr,self.port,self.pubkey.encode(encoder=HexEncoder))
 				self.peers[self.community_ip].sendall(pickle.dumps(message))
 			except:
 				print "Community server down"
@@ -340,13 +329,13 @@ class Peer(Thread):
 				logger.info("Connected to peer",
 					extra={"addr":addr[0], "port":str(addr[1])})
 				print "Connected: ", addr[0], str(addr[1])
-				message = (self.pubkey)
+				message = (self.pubkey.encode(encoder=HexEncoder))
 				self.sendMessage(addr[0],addr[1],pickle.dumps((message,self.ip_addr,self.port)),7) #reply to newly connected peer with public key
 				
 
 	def sendMessage(self, ip=None, port=None, message=None, category=None):
 		for addr in self.public_key_list:
-			print addr,":",self.public_key_list[addr].exportKey()
+			print addr,":",self.public_key_list[addr].encode(encoder=HexEncoder)
 
 		while not ip or ip == '':
 			ip = raw_input("IP Address: ")
@@ -373,10 +362,10 @@ class Peer(Thread):
 					raise ValueError('Category input not within bounds')
 
 			if category == 1:
-				random_generator = Random.new().read
-				message = self.public_key_list[addr].publickey().encrypt(message,random_generator)[0].encode('base64', 'strict')
+				hasher = sha256
+				message = self.privkey.sign(hasher(message)).encode('base64')
 
-			packet = {u'_owner': self.pubkey, u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
+			packet = {u'_owner': self.pubkey.encode(HexEncoder), u'_recipient': self.public_key_list[addr].encode(encoder=HexEncoder), u'_category': str(category), u'content':message}
 			raw_string = json.dumps(packet)
 				
 			ssnd = self.peers[(ip,port)]
@@ -407,10 +396,10 @@ class Peer(Thread):
 		for addr in self.public_key_list:
 
 			if category == 1:
-				random_generator = Random.new().read
-				message = self.public_key_list[addr].publickey().encrypt(message,random_generator)[0].encode('base64', 'strict')
-			
-			packet = {u'_owner': self.pubkey, u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
+				hasher = sha256
+				message = self.privkey.sign(hasher(message)).encode('base64')
+
+			packet = {u'_owner': self.pubkey.encode(HexEncoder), u'_recipient': self.public_key_list[addr].encode(encoder=HexEncoder), u'_category': str(category), u'content':message}
 			raw_string = json.dumps(packet)
 
 			if addr != (self.ip_addr, self.port) and addr != self.community_ip:
