@@ -9,7 +9,7 @@ from Crypto import Random
 from uuid import uuid1
 import pickle, os, errno
 from blockpy_logging import logger
-from chain import readChainSql
+from chain import readChainSql, readTxnsSql
 
 
 class Peer(Thread):
@@ -271,6 +271,7 @@ class Peer(Thread):
 		newChain = content['chain']
 		newTxns = content['txns']
 		myChain = readChainSql(self.conn, self.cur)
+		myTxns = readTxnsSql(self.conn, self.cur)
 		for i in range(len(myChain)):
 			newTime = newChain[i]['contents']['timestamp']
 			if newTime:
@@ -283,6 +284,18 @@ class Peer(Thread):
 			# addToTxns(self.txnList, self.conn, self.cur, blockNumber)
 		logger.info('Updated current chain!',
 			extra={'NewBlocks': newChain[len(myChain):]})
+
+		for i in range(len(myTxns)):
+			newTime = newTxns[i]['timestamp']
+			if newTime:
+				newTxns[i]['timestamp'] = datetime.datetime.strptime(newTime, '%Y-%m-%dT%H:%M:%S.%f')
+			if myTxns[i] != newTxns[i]:
+				logger.warn('Transaction #%s is different from broadcasted txns', i,
+					extra={'current': myTxns[i], 'new': newTxns[i]})
+		for i in range(len(myTxns), len(newTxns)):
+			addToTxns(newTxns[i]['content'], self.conn, self.cur, newTxns[i]['blockNumber'])
+		logger.info('Updated current chain!',
+			extra={'NewTxns': newTxns[len(myTxns):]})
 
 	def sending(self):
 		while True:
