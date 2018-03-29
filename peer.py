@@ -163,6 +163,10 @@ class Peer(Thread):
 									print "_______________"
 								elif category == str(8):
 									print json_message['content']
+								elif category == str(10):
+									# Received new chain from community peer, check and update current chain.
+									self.updateTables(json_message)
+
 								else:
 									raise ValueError('No such category')
 						else:
@@ -261,6 +265,24 @@ class Peer(Thread):
 				logger.info("Current miner updated",
 					extra={"miner": self.miner})
 				print 'Current miner is set to: ', self.miner
+
+	def updateTables(self, json_message):
+		content = json.loads(json_message['content'])
+		newChain = content['chain']
+		newTxns = content['txns']
+		myChain = readChainSql(self.conn, self.cur)
+		for i in range(len(myChain)):
+			newTime = newChain[i]['contents']['timestamp']
+			if newTime:
+				newChain[i]['contents']['timestamp'] = datetime.datetime.strptime(newTime, '%Y-%m-%dT%H:%M:%S.%f')
+			if myChain[i] != newChain[i]:
+				logger.warn('Block #%s is different from broadcasted chain', i,
+					extra={'current': myChain[i], 'new': newChain[i]})
+		for i in range(len(myChain), len(newChain)):
+			blockNumber = addToChain(newChain[i], self.conn, self.cur)
+			# addToTxns(self.txnList, self.conn, self.cur, blockNumber)
+		logger.info('Updated current chain!',
+			extra={'NewBlocks': newChain[len(myChain):]})
 
 	def sending(self):
 		while True:

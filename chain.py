@@ -27,6 +27,23 @@ def readChainSql(conn, cur):
         newChain.append(block)
     return newChain
 
+def readTxnsSql(conn, cur):
+    checkIfEmpty(conn, cur)
+    queryParentSql = 'SELECT * FROM txns ORDER BY "txn_number" asc'
+    txns = []
+    try:
+        cur.execute(queryParentSql)
+        txns = cur.fetchall()
+    except psycopg2.ProgrammingError as error:
+        print error
+
+    indexes = ['txnNumber', 'content', 'blockNumber', 'timestamp']
+    newTxns = []
+    for j in range(len(txns)):
+        txn = {indexes[i]: txns[j][i] for i in range(len(txns[j]))}
+        newTxns.append(txn)
+    return newTxns
+
 def checkIfEmpty(conn, cur):
     createTableSql = 'CREATE TABLE IF NOT EXISTS blocks(block_number SERIAL PRIMARY KEY, block_hash TEXT NOT NULL, parent_hash TEXT, block_txn TEXT, timestamp TIMESTAMP, txn_count INTEGER);'
     createTableSql += 'CREATE TABLE IF NOT EXISTS txns(txn_number SERIAL NOT NULL PRIMARY KEY, txn_content json NOT NULL, block_number INTEGER NOT NULL, timestamp TIMESTAMP NOT NULL);'

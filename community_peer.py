@@ -5,9 +5,10 @@ Change ip address and port of commmunity peer before running
 
 '''
 
-import json, socket, sys, getopt, select
+import json, socket, sys, getopt, select, datetime
 from threading import Thread
 from main import create, addToChain, connect, disconnect, addToTxns
+from chain import readChainSql, readTxnsSql
 from hashMe import hashMe
 from Crypto.Signature import PKCS1_PSS
 from Crypto.PublicKey import RSA
@@ -120,12 +121,17 @@ class Community_Peer(Thread):
 						# 	del self.peers[socket.getpeername()]
 						# 	continue
 
+	def json_serial(self, obj):
+		if isinstance(obj, (datetime.datetime, datetime.date)):
+			return obj.isoformat()
+		raise TypeError("Type %s is not serializable" % type(obj))
+
 	def waitForSignedBlock(self, socket, json_message):
 		# proof here
 		peer = socket.getpeername()
 		if peer in self.port_equiv.keys():
 			peer = self.port_equiv[peer]
-		print 'PEER: ', peer, self.port_equiv_reverse, self.port_equiv
+		print 'PEER: ', peer
 		if peer in self.received_transaction_from:
 			publickey = RSA.importKey(self.received_transaction_from[peer])
 			signer = PKCS1_PSS.new(publickey)
@@ -160,14 +166,24 @@ class Community_Peer(Thread):
 			self.messages = []
 			self.received_transaction_from = {}
 
+			# broadcast chain
+			chain = readChainSql(self.conn, self.cur)
+			txns = readTxnsSql(self.conn, self.cur)
+			self.broadcastMessage(json.dumps({'chain': chain, 'txns': txns}, default=self.json_serial), 10)
+			logger.info('Broadcasted chain and txns',
+				extra={'chain': chain, 'txns': txns})
+
 			# get next miner and broadcast
-			self.miner = min(self.potential_miners)
-			if self.miner in self.port_equiv.keys():
-				self.miner = self.port_equiv[self.miner]
-			self.broadcastMessage(self.miner, 5)
-			logger.info("Current miner updated",
-				extra={"miner": self.miner})
-			print 'Current miner is set to: ', self.miner	
+			self.miners = sorted(self.potential_miners)[:(int)(len(self.potential_miners)/3)+1]
+			for i, self.miner in enumerate(self.miners):
+				if self.miner in self.port_equiv.keys():
+					print self.port_equiv[self.miner]
+					self.miners[i] = self.port_equiv[self.miner]
+			self.broadcastMessage(self.miners, 5)
+			for self.miner in self.miners:
+				logger.info("Current miner updated",
+					extra={"miner": self.miner})
+				print 'Current miner is set to: ', self.miner
 
 	def addNewPeer(self, socket, json_message):
 		peer_info = pickle.loads(json_message['content'])
