@@ -7,7 +7,7 @@ venv/
 .vscode/settings.json
 peer2.py
 peer3.py
-test.py
+test*.py
 keys/
 database.ini
 logs/

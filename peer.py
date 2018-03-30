@@ -13,7 +13,7 @@ from chain import readChainSql, readTxnsSql
 
 
 class Peer(Thread):
-	community_ip = ('192.168.254.106', 5000)
+	community_ip = ('127.0.0.1', 5000)
 
 	def __init__(self, ip_addr, port, sim=False):
 		try:
@@ -109,7 +109,7 @@ class Peer(Thread):
 							# 3: waiting for signedBlock Phase	4: waiting for distBlockchain
 							if json.loads(message):
 								json_message = json.loads(message)
-								print "\n" + str(socket.getpeername()) + ": " + json.dumps(json_message['_category'], indent=4, sort_keys=True)
+								print "\n" + str(socket.getpeername()) + ": category " + json_message['_category']
 								category = str(json_message['_category'])
 								logger.info("Message received",
 									extra={"owner":str(socket.getpeername()), "category": category, "received_message": message})
@@ -129,7 +129,6 @@ class Peer(Thread):
 									logger.info("Current miners updated",
 										extra={"miners": self.miners})
 									print 'Current miners are set to: ', self.miners
-									# print 'IP address of miner is: ', self.port
 								elif category == str(6):	#peer discovery - update list of public keys
 									spec_peer = [] 
 									templist = pickle.loads(json_message['content'])
@@ -160,7 +159,7 @@ class Peer(Thread):
 								elif category == str(8):
 									print json_message['content']
 								elif category == str(10):
-									# Received new chain from community peer, check and update current chain.
+									# Received new chain from community peer, check and update tables.
 									self.updateTables(json_message)
 
 								else:
@@ -173,11 +172,13 @@ class Peer(Thread):
 					# 	continue
 
 	def recvall(self, socket):
+		# Receives all messages until timeout (workaround for receiving part of message only)
 		messages = ''
 		while 1:
 			try:
 				data = socket.recv(8196)
 			except:
+				# timeout (doesn't work on some systems?)
 				break
 			if data:
 				messages += data
@@ -197,7 +198,6 @@ class Peer(Thread):
 			if len(self.messages) >= self.max_txns:
 				# create new block
 				self.newBlock, self.txnList = create(self.messages, self.conn, self.cur)
-				print 'RECEVED FROM:\n', self.received_transaction_from_reverse
 				packet = {'block': self.newBlock, 'txnList': str(self.txnList), 'contributing': str(self.received_transaction_from_reverse)}
 				self.sendMessage(self.community_ip[0], self.community_ip[1], json.dumps(packet), 9)
 				logger.info('Block sent to community peer for collating')
@@ -281,30 +281,39 @@ class Peer(Thread):
 		newTxns = content['txns']
 		myChain = readChainSql(self.conn, self.cur)
 		myTxns = readTxnsSql(self.conn, self.cur)
+
+		# Update table 'blocks'
 		for i in range(len(myChain)):
 			newTime = newChain[i]['contents']['timestamp']
 			if newTime:
+				# decode datetime to datatime.datetime() object
 				newChain[i]['contents']['timestamp'] = datetime.datetime.strptime(newTime, '%Y-%m-%dT%H:%M:%S.%f')
 			if myChain[i] != newChain[i]:
 				logger.warn('Block #%s is different from broadcasted chain', i,
 					extra={'current': myChain[i], 'new': newChain[i]})
 		for i in range(len(myChain), len(newChain)):
+			# Add new entries
 			blockNumber = addToChain(newChain[i], self.conn, self.cur)
+
 		logger.info('Updated current chain!',
 			extra={'NewBlocks': newChain[len(myChain):]})
 
+		# Update table 'txns'
 		for i in range(len(myTxns)):
 			newTime = newTxns[i]['timestamp']
 			if newTime:
+				# decode datetime to datatime.datetime() object
 				newTxns[i]['timestamp'] = datetime.datetime.strptime(newTime, '%Y-%m-%dT%H:%M:%S.%f')
 			if myTxns[i] != newTxns[i]:
 				logger.warn('Transaction #%s is different from broadcasted txns', i,
 					extra={'current': myTxns[i], 'new': newTxns[i]})
 		for i in range(len(myTxns), len(newTxns)):
 			newTxn = newTxns[i]
+			# Add new entries
 			addToTxns([newTxn['content']], self.conn, self.cur, newTxn['blockNumber'], newTxn['txnNumber'], \
 				datetime.datetime.strptime(newTxn['timestamp'], '%Y-%m-%dT%H:%M:%S.%f'))
-		logger.info('Updated current chain!',
+
+		logger.info('Updated txns!',
 			extra={'NewTxns': newTxns[len(myTxns):]})
 
 	def sending(self):
@@ -499,7 +508,7 @@ def main(argv):
 	#this is the default ip and port
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
-	ip_addr = "192.168.254.100"#s.getsockname()[0]
+	ip_addr = "127.0.0.1"	# s.getsockname()[0]
 	port = 8000
 	sim = False
 

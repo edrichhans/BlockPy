@@ -20,7 +20,7 @@ import pickle
 
 class Community_Peer(Thread):
 
-	def __init__(self,ip_address = '192.168.254.100', port = 5000):
+	def __init__(self,ip_address = '127.0.0.1', port = 5000):
 		random_generator = Random.new().read
 		self.key = RSA.generate(1024, random_generator)
 		self.peers = {}
@@ -122,6 +122,7 @@ class Community_Peer(Thread):
 						# 	continue
 
 	def json_serial(self, obj):
+		# Serializes datetime object to valid JSON format
 		if isinstance(obj, (datetime.datetime, datetime.date)):
 			return obj.isoformat()
 		raise TypeError("Type %s is not serializable" % type(obj))
@@ -345,7 +346,7 @@ def main(argv):
 	#this is the default ip and port
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
-	ip_addr = "192.168.254.100"#s.getsockname()[0]
+	ip_addr = "127.0.0.1"#s.getsockname()[0]
 	port = 5000
 
 	try:
