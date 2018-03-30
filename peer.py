@@ -1,4 +1,4 @@
-import json, socket, sys, getopt, select, datetime, heapq, math
+import json, socket, sys, getopt, select, datetime, heapq, math, time
 from threading import Thread
 from main import create, addToChain, connect, disconnect, addToTxns, verifyTxn
 from hashMe import hashMe
@@ -13,7 +13,7 @@ from chain import readChainSql, readTxnsSql
 
 
 class Peer(Thread):
-	community_ip = ('127.0.0.1', 5000)
+	community_ip = ('192.168.254.106', 5000)
 
 	def __init__(self, ip_addr, port, sim=False):
 		try:
@@ -66,6 +66,7 @@ class Peer(Thread):
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.srcv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		self.srcv.settimeout(1)
 		logger.info("peer.py is running",
 			extra={"addr": self.ip_addr, "port": self.port})
 		print "hostname", self.ip_addr
@@ -96,13 +97,11 @@ class Peer(Thread):
 					print "\nEstablished connection with: ", addr
 
 				else:
-					# try:
+					messages = self.recvall(socket)
 					recv_buffer = ""
-					messages = socket.recv(4096)
 					recv_buffer = recv_buffer + messages
 					recv_buffer_split = recv_buffer.split('\0')
-					# print recv_buffer_split
-					for message in recv_buffer_split[:-1]:
+					for message in recv_buffer_split:
 						if (message.lower() == "reqpeer"):
 							peersRequest(socket.getpeername(0), socket.getpeername(1))
 						elif (message != ""):
@@ -110,16 +109,13 @@ class Peer(Thread):
 							# 3: waiting for signedBlock Phase	4: waiting for distBlockchain
 							if json.loads(message):
 								json_message = json.loads(message)
-								print "\n" + str(socket.getpeername()) + ": " + json.dumps(json_message, indent=4, sort_keys=True)
+								print "\n" + str(socket.getpeername()) + ": " + json.dumps(json_message['_category'], indent=4, sort_keys=True)
 								category = str(json_message['_category'])
 								logger.info("Message received",
 									extra={"owner":str(socket.getpeername()), "category": category, "received_message": message})
 
 								if category == str(1):	#waiting for transaction
 									json_message['content'] = RSA.importKey(self.privkey).decrypt(json_message['content'].decode("base64"))
-									# print json_message
-									# message = json.dumps(json_message)
-
 									self.waitForTxn(json_message, socket, message)
 
 								elif category == str(2):	# verifying block
@@ -175,6 +171,19 @@ class Peer(Thread):
 					# 	print "Data err", e
 					# 	del self.peers[socket.getpeername()]
 					# 	continue
+
+	def recvall(self, socket):
+		messages = ''
+		while 1:
+			try:
+				data = socket.recv(8196)
+			except:
+				break
+			if data:
+				messages += data
+			else:
+				break
+		return messages
 
 	def waitForTxn(self, json_message, socket, message):
 		try:
@@ -281,7 +290,6 @@ class Peer(Thread):
 					extra={'current': myChain[i], 'new': newChain[i]})
 		for i in range(len(myChain), len(newChain)):
 			blockNumber = addToChain(newChain[i], self.conn, self.cur)
-			# addToTxns(self.txnList, self.conn, self.cur, blockNumber)
 		logger.info('Updated current chain!',
 			extra={'NewBlocks': newChain[len(myChain):]})
 
@@ -293,7 +301,9 @@ class Peer(Thread):
 				logger.warn('Transaction #%s is different from broadcasted txns', i,
 					extra={'current': myTxns[i], 'new': newTxns[i]})
 		for i in range(len(myTxns), len(newTxns)):
-			addToTxns(newTxns[i]['content'], self.conn, self.cur, newTxns[i]['blockNumber'])
+			newTxn = newTxns[i]
+			addToTxns([newTxn['content']], self.conn, self.cur, newTxn['blockNumber'], newTxn['txnNumber'], \
+				datetime.datetime.strptime(newTxn['timestamp'], '%Y-%m-%dT%H:%M:%S.%f'))
 		logger.info('Updated current chain!',
 			extra={'NewTxns': newTxns[len(myTxns):]})
 
@@ -338,15 +348,14 @@ class Peer(Thread):
 			try:
 				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+				self.peers[self.community_ip].settimeout(1)	# set timeout for recv()
 				self.peers[self.community_ip].bind((self.ip_addr,0))
 				self.peers[self.community_ip].connect(self.community_ip)
 				logger.info("Connected to community peer",
 					extra={"addr":self.community_ip[0], "port":str(self.community_ip[1])})
 				print "Connected: ", self.community_ip[0], str(self.community_ip[1])
 				message = (self.ip_addr,self.port,self.pubkey)
-				# self.peers[self.community_ip].sendall(pickle.dumps(message))
 				self.sendMessage(self.community_ip[0], self.community_ip[1], pickle.dumps(message), 4)
-				# print 'MESSAGE: ', message
 			except Exception as e:
 				logger.error('Community Server Error', exc_info=True)
 				print 'Community Server Error: ', e
@@ -355,6 +364,7 @@ class Peer(Thread):
 			for addr in peer_addr:
 				self.peers[addr] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[addr].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+				self.peers[addr].settimeout(1)
 				self.peers[addr].bind((self.ip_addr, 0))
 				self.peers[addr].connect(addr)
 				logger.info("Connected to peer",
@@ -489,7 +499,7 @@ def main(argv):
 	#this is the default ip and port
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
-	ip_addr = "127.0.0.1"#s.getsockname()[0]
+	ip_addr = "192.168.254.100"#s.getsockname()[0]
 	port = 8000
 	sim = False
 

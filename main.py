@@ -82,9 +82,9 @@ def addToChain(newBlock, conn, cur):
     logger.info("blocks table updated")
     return blockNumber
 
-def addToTxns(txns, conn, cur, blockNumber):
+def addToTxns(txns, conn, cur, blockNumber, txnNumber=None, timestamp=None):
     print 'Writing to Txns Table...\n'
-    writeTxnsSql(txns, conn, cur, blockNumber)
+    writeTxnsSql(txns, conn, cur, blockNumber, txnNumber, timestamp)
     logger.info("txns table updated")
 
 def verifyTxn(txn, conn, cur):

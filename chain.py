@@ -83,12 +83,15 @@ def writeChainSql(block, conn, cur):
     conn.commit()
     return blockNumber
 
-def writeTxnsSql(messages, conn, cur, blockNumber):
+def writeTxnsSql(messages, conn, cur, blockNumber, txnNumber=None, timestamp=None):
     insertSql = ''
     values = []
     for i in messages:
         insertSql += '''INSERT INTO txns("txn_content", "block_number", "timestamp")
             VALUES(%s, %s, %s) RETURNING "txn_content";'''
-        values += [json.dumps(i), blockNumber, str(datetime.now())]
+        if not timestamp:
+            values += [json.dumps(i), blockNumber, str(datetime.now())]
+        else:
+            values += [json.dumps(i), blockNumber, str(timestamp)]
     cur.execute(insertSql, values)
     conn.commit()
