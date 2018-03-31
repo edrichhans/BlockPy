@@ -56,7 +56,7 @@ class Peer(Thread):
 		self.txnList = []
 		self.potential_miners = {}
 		self.sim = sim
-		self.max_txns = 2
+		self.max_txns = 4
 		self.conn, self.cur = connect()
 		self.miners = []
 		self.public_key_list = {}
@@ -172,7 +172,7 @@ class Peer(Thread):
 								else:
 									raise ValueError('No such category')
 						else:
-							print str(socket.getpeername()), str(socket)
+							print 'End of message.'
 					# except Exception as e:
 					# 	print "Data err", e
 					# 	del self.peers[socket.getpeername()]
@@ -205,7 +205,8 @@ class Peer(Thread):
 				self.received_transaction_from_reverse[socket.getpeername()] = owner
 				self.received_transaction_from[self.port_equiv_reverse[socket.getpeername()]] = owner
 			else:
-				print '???????'
+				logger.error('self.port_equiv not set properly.')
+				print 'self.port_equiv not set properly.'
 
 			# print 'REVERSE: ', self.port_equiv, socket.getpeername()
 			self.messages.append(message)
@@ -222,7 +223,7 @@ class Peer(Thread):
 
 	def verifyBlock(self, socket, message):
 		# generate nonce
-		nonce = uuid1().hex
+		nonce = hashMe(uuid1().hex)
 		# get peer address
 		peer = socket.getpeername()
 		# get block
@@ -278,9 +279,7 @@ class Peer(Thread):
 			self.received_transaction_from_reverse = {}
 
 			# get next miner and broadcast
-			print 'POTENTIAL: ', self.potential_miners
 			self.miners = sorted(self.potential_miners)[:(int)(len(self.potential_miners)/3)+1]
-			print 'MINERS: ', self.miners
 			for i, self.miner in enumerate(self.miners):
 				if self.miner in self.port_equiv.keys():
 					print self.port_equiv[self.miner]
@@ -364,7 +363,8 @@ class Peer(Thread):
 			elif command == 'verify':
 				self.getTxn()
 			elif command == 'default':
-				self.sendToMiners()
+				message = raw_input('content: ')
+				self.sendToMiners(message)
 			else:
 				print "Unknown command"
 
@@ -422,11 +422,11 @@ class Peer(Thread):
 		addr = (ip,port)
 
 		if addr in self.peers:
-			self.createPacketAndSend(addr, ip, port, message, category)
+			return self.createPacketAndSend(addr, ip, port, message, category)
 
 		elif addr in self.port_equiv_reverse:
 			addr = self.port_equiv_reverse[addr]
-			self.createPacketAndSend(addr, ip, port, message, category)
+			return self.createPacketAndSend(addr, ip, port, message, category)
 
 		else:
 			print "Address not recognized: "
@@ -528,9 +528,12 @@ class Peer(Thread):
 	def sendToMiners(self, message=None):
 		for self.miner in self.miners:
 			if self.miner in self.port_equiv_reverse.keys():
-				return self.sendMessage(self.port_equiv_reverse[self.miner][0],self.port_equiv_reverse[self.miner][1], message=message, category=1)
+				if not self.sendMessage(self.port_equiv_reverse[self.miner][0],self.port_equiv_reverse[self.miner][1], message=message, category=1):
+					return False
 			else:
-				return self.sendMessage(self.miner[0],self.miner[1], message=message, category=1)
+				if not self.sendMessage(self.miner[0],self.miner[1], message=message, category=1):
+					return False
+		return True
 
 
 

@@ -131,7 +131,6 @@ class Community_Peer(Thread):
 		peer = socket.getpeername()
 		if peer in self.port_equiv.keys():
 			peer = self.port_equiv[peer]
-		print 'PEER: ', peer
 		if peer in self.received_transaction_from:
 			publickey = RSA.importKey(self.received_transaction_from[peer])
 			signer = PKCS1_PSS.new(publickey)
@@ -150,8 +149,8 @@ class Community_Peer(Thread):
 				nonce = json_message['content'][1]
 				# get the difference of
 				self.potential_miners[peer] = abs(int(self.newBlock['blockHash']+nonce, 36) - int(p[:96], 36))
-				print 'NEW POTENTIAL MINER: ', self.potential_miners
-				# print self.potential_miners
+				# print 'NONCE NI: ', peer
+				# print self.potential_miners[peer]
 
 				del self.received_transaction_from[peer]
 				logger.info("Block signature verified",
@@ -180,9 +179,7 @@ class Community_Peer(Thread):
 				extra={'chain': chain, 'txns': txns})
 
 			# get next miner and broadcast
-			print 'POTENTIAL: ', self.potential_miners
 			self.miners = sorted(self.potential_miners)[:(int)(len(self.potential_miners)/3)+1]
-			print 'MINERS: ', self.miners
 			for i, self.miner in enumerate(self.miners):
 				if self.miner in self.port_equiv.keys():
 					print self.port_equiv[self.miner]
@@ -224,7 +221,7 @@ class Community_Peer(Thread):
 		self.received_transaction_from = eval(content['contributing'])
 		for peer in self.received_transaction_from:
 			# return block for verification
-			print 'AA: ', self.port_equiv_reverse, self.port_equiv, peer
+			# print 'AA: ', self.port_equiv_reverse, self.port_equiv, peer
 			if peer in self.port_equiv_reverse.keys():
 				self.sendMessage(self.port_equiv_reverse[peer][0], self.port_equiv_reverse[peer][1], json.dumps(self.newBlock), 2)
 			else:
