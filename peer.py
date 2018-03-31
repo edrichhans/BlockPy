@@ -144,20 +144,27 @@ class Peer(Thread):
 											if addr not in self.peers:
 												spec_peer.append(addr)
 												self.public_key_list[addr] = templist[addr]
+												self.port_equiv[addr] = addr
 										# print spec_peer
 										self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
 										self.counter += 1
 									print self.public_key_list
 								elif category == str(7): #work around for local port limitations , send public keys of 
-									self.public_key_list[socket.getpeername()] = RSA.importKey(pickle.loads(json_message['content'])[0]) #add public key sent by newly connected peer
-									self.port_equiv[socket.getpeername()] = (pickle.loads(json_message['content'])[1],pickle.loads(json_message['content'])[2])
-									self.port_equiv_reverse[(pickle.loads(json_message['content'])[1],pickle.loads(json_message['content'])[2])] = socket.getpeername()
+									addr1 = socket.getpeername()
+									addr2 = (pickle.loads(json_message['content'])[1],pickle.loads(json_message['content'])[2])
+									self.public_key_list[addr1] = RSA.importKey(pickle.loads(json_message['content'])[0]) #add public key sent by newly connected peer
+									self.port_equiv[addr1] = addr2
+									self.port_equiv_reverse[addr2] = addr1
+									# self.sendMessage(addr2[0], addr2[1], pickle.dumps((self.ip_addr, self.port)), 8)
+									print 'REVERSE: ', self.port_equiv_reverse
+									print 'REAL: ', self.port_equiv
 									print "Public Key List"
 									for addr in self.public_key_list:
 										print str(addr) + self.public_key_list[addr].exportKey()
 									print "_______________"
 								elif category == str(8):
-									print json_message['content']
+									print 'CAT 8: '
+									print pickle.loads(json_message['content'])
 								elif category == str(10):
 									# Received new chain from community peer, check and update tables.
 									self.updateTables(json_message)
@@ -191,8 +198,15 @@ class Peer(Thread):
 			# txnexists = self.checkTxnExists(json_message)
 			# if not txnexists:
 			owner = json_message['_owner']
-			self.received_transaction_from[socket.getpeername()] = owner
-			self.received_transaction_from_reverse[self.port_equiv[socket.getpeername()]] = owner
+			if socket.getpeername() in self.port_equiv:
+				self.received_transaction_from[socket.getpeername()] = owner
+				self.received_transaction_from_reverse[self.port_equiv[socket.getpeername()]] = owner
+			elif socket.getpeername() in self.port_equiv_reverse:
+				self.received_transaction_from_reverse[socket.getpeername()] = owner
+				self.received_transaction_from[self.port_equiv_reverse[socket.getpeername()]] = owner
+			else:
+				print '???????'
+
 			# print 'REVERSE: ', self.port_equiv, socket.getpeername()
 			self.messages.append(message)
 			if len(self.messages) >= self.max_txns:
@@ -264,7 +278,9 @@ class Peer(Thread):
 			self.received_transaction_from_reverse = {}
 
 			# get next miner and broadcast
+			print 'POTENTIAL: ', self.potential_miners
 			self.miners = sorted(self.potential_miners)[:(int)(len(self.potential_miners)/3)+1]
+			print 'MINERS: ', self.miners
 			for i, self.miner in enumerate(self.miners):
 				if self.miner in self.port_equiv.keys():
 					print self.port_equiv[self.miner]
@@ -276,6 +292,11 @@ class Peer(Thread):
 				print 'Current miner is set to: ', self.miner
 
 	def updateTables(self, json_message):
+		# reset
+		self.messages = []
+		self.received_transaction_from = {}
+		self.received_transaction_from_reverse = {}
+
 		content = json.loads(json_message['content'])
 		newChain = content['chain']
 		newTxns = content['txns']
@@ -400,42 +421,55 @@ class Peer(Thread):
 
 		addr = (ip,port)
 
-		if (ip, port) in self.peers:
-			 #replace with actual public key
-			if not message:
-				message = raw_input("content: ")
+		if addr in self.peers:
+			self.createPacketAndSend(addr, ip, port, message, category)
 
-			if not category:
-				category = input("category: ")
-
-				if not (category>0 and category<9):
-					raise ValueError('Category input not within bounds')
-
-			if category == 1:
-				random_generator = Random.new().read
-				message = self.public_key_list[addr].publickey().encrypt(message,random_generator)[0].encode('base64', 'strict')
-
-			if addr == self.community_ip:
-				packet = {u'_owner': self.pubkey, u'_recipient': self.community_ip, u'_category': str(category), u'content':message}
-			else:
-				packet = {u'_owner': self.pubkey, u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
-			raw_string = json.dumps(packet)
-				
-			ssnd = self.peers[(ip,port)]
-			try:
-				ssnd.sendall(raw_string + '\0')
-				return True
-			except Exception as e:
-				print e
-				return False
+		elif addr in self.port_equiv_reverse:
+			addr = self.port_equiv_reverse[addr]
+			self.createPacketAndSend(addr, ip, port, message, category)
 
 		else:
 			print "Address not recognized: "
-			print "IP:"
-			print ip
-			print "Port:"
-			print port
+			print "IP: ", ip
+			print "Port: ", port
 			print self.port_equiv
+			return False
+
+	def createPacketAndSend(self, addr, ip, port, message, category):
+		 #replace with actual public key
+		if not message:
+			message = raw_input("content: ")
+
+		if not category:
+			category = input("category: ")
+
+			if not (category>0 and category<9):
+				raise ValueError('Category input not within bounds')
+
+		if category == 1:
+			random_generator = Random.new().read
+			key = None
+			if addr in self.public_key_list:
+				key = self.public_key_list[addr]
+			elif addr in self.port_equiv_reverse and self.port_equiv_reverse[addr] in self.public_key_list:
+				key = self.public_key_list[self.port_equiv_reverse[addr]]
+			elif addr in self.port_equiv and self.port_equiv[addr] in self.public_key_list:
+				key = self.public_key_list[self.port_equiv[addr]]
+
+			message = key.publickey().encrypt(message,random_generator)[0].encode('base64', 'strict')
+
+		if addr == self.community_ip:
+			packet = {u'_owner': self.pubkey, u'_recipient': self.community_ip, u'_category': str(category), u'content':message}
+		else:
+			packet = {u'_owner': self.pubkey, u'_recipient': self.public_key_list[addr].exportKey(), u'_category': str(category), u'content':message}
+		raw_string = json.dumps(packet)
+			
+		ssnd = self.peers[addr]
+		try:
+			ssnd.sendall(raw_string + '\0')
+			return True
+		except Exception as e:
+			print e
 			return False
 			
 
