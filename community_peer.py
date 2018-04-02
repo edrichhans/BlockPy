@@ -5,7 +5,7 @@ Change ip address and port of commmunity peer before running
 
 '''
 
-import json, socket, sys, getopt, select, datetime
+import json, socket, sys, getopt, select, datetime, time
 from threading import Thread
 from main import create, addToChain, connect, disconnect, addToTxns
 from chain import readChainSql, readTxnsSql
@@ -66,7 +66,7 @@ class Community_Peer(Thread):
 				else:
 					#receive the public key from the recently connected peer
 					# messages = self.recvall(socket)
-					messages = socket.recv(8196)
+					messages = self.recvall(socket)
 					recv_buffer = ""
 					recv_buffer = recv_buffer + messages
 					recv_buffer_split = recv_buffer.split('\0')
@@ -108,16 +108,25 @@ class Community_Peer(Thread):
 	def recvall(self, socket):
 		# Receives all messages until timeout (workaround for receiving part of message only)
 		messages = ''
+		begin = time.time()
+		timeout = 1
+		socket.setblocking(0)
 		while 1:
+			if messages and time.time() - begin > timeout:
+				break
+			elif time.time() - begin > timeout*2:
+				break
 			try:
-				data = socket.recv(8196)
-			except:
-				# timeout (doesn't work on some systems?)
-				break
-			if data:
-				messages += data
-			else:
-				break
+				data = socket.recv(8192)
+				if data:
+					messages += data
+					#change the beginning time for measurement
+					begin = time.time()
+				else:
+					#sleep for sometime to indicate a gap
+					time.sleep(0.1)
+			except Exception as e:
+				pass
 		return messages
 
 	def json_serial(self, obj):
@@ -135,14 +144,9 @@ class Community_Peer(Thread):
 			publickey = RSA.importKey(self.received_transaction_from[peer])
 			signer = PKCS1_PSS.new(publickey)
 			digest = SHA256.new()
-			digest2 = SHA256.new()
-			digest.update(json.dumps(self.newBlock))
-			# Rearrange self.newBlock cause json.dumps is sensitive
-			self.newBlock = json.loads(json.dumps(self.newBlock))
-			# Digest for rearranged self.newBlock
-			digest2.update(json.dumps(self.newBlock))
-			if signer.verify(digest, json_message['content'][0].decode('base64')) or \
-			signer.verify(digest2, json_message['content'][0].decode('base64')):
+			digest.update(json.dumps(self.newBlock, sort_keys=True))
+			# self.newBlock = json.loads(json.dumps(self.newBlock))
+			if signer.verify(digest, json_message['content'][0].decode('base64')):
 				# parse values
 				raw_pubkey = self.received_transaction_from[peer].replace('-----BEGIN PUBLIC KEY-----', '').replace('\n', '').replace('-----END PUBLIC KEY-----', '')
 				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])

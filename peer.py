@@ -201,15 +201,6 @@ class Peer(Thread):
 					time.sleep(0.1)
 			except Exception as e:
 				pass
-			# try:
-			# 	data = socket.recv(8196)
-			# except:
-			# 	# timeout (doesn't work on some systems?)
-			# 	break
-			# if data:
-			# 	messages += data
-			# else:
-			# 	break
 		return messages
 
 	def waitForTxn(self, json_message, socket, message):
@@ -249,7 +240,7 @@ class Peer(Thread):
 		block = json.loads(json.loads(message)['content'])
 		# generate fingerprint
 		fingerprint = SHA256.new()
-		fingerprint.update(json.dumps(block))
+		fingerprint.update(json.dumps(block, sort_keys=True))
 		# generate signature
 		signer = PKCS1_PSS.new(RSA.importKey(self.privkey))
 		signature = signer.sign(fingerprint)

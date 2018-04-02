@@ -51,7 +51,8 @@ def checkIfEmpty(conn, cur):
     conn.commit()
 
 def createGenesisBlockSql(conn, cur):
-    genesisBlockSql = 'INSERT INTO blocks("block_hash") VALUES (%s)'
+    checkIfEmpty(conn, cur)
+    genesisBlockSql = 'INSERT INTO blocks("block_hash") SELECT (%s) WHERE NOT EXISTS (SELECT * FROM blocks)'
     r = 'b72c1d29818ac5daca49b033af50f3babd94bab802c51d4896d40a82950290ed'
     cur.execute(genesisBlockSql, (r,))
     conn.commit()
@@ -75,6 +76,7 @@ def viewChainSql(chain):
         print (' ' * (hashLen/2)) + '  |'
 
 def writeChainSql(block, conn, cur):
+    createGenesisBlockSql(conn, cur)
     insertSql = '''INSERT INTO blocks("block_hash", "parent_hash", "block_txn", "timestamp", "txn_count")
         VALUES(%s, %s, %s, %s, %s) RETURNING "block_number";'''
     contents = block['contents']
@@ -84,6 +86,7 @@ def writeChainSql(block, conn, cur):
     return blockNumber
 
 def writeTxnsSql(messages, conn, cur, blockNumber, txnNumber=None, timestamp=None):
+    checkIfEmpty(conn, cur)
     insertSql = ''
     values = []
     for i in messages:
