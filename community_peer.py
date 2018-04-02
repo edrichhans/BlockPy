@@ -10,34 +10,35 @@ from threading import Thread
 from main import create, addToChain, connect, disconnect, addToTxns
 from chain import readChainSql, readTxnsSql
 from hashMe import hashMe
-from Crypto.Signature import PKCS1_PSS
-from Crypto.PublicKey import RSA
-from Crypto.Hash import SHA256
+from nacl.encoding import HexEncoder
+from nacl.signing import SigningKey, VerifyKey
+from nacl.hash import sha256
 from Crypto import Random
 from uuid import uuid1
 from blockpy_logging import logger
+from Queue import *
 import pickle
 
 class Community_Peer(Thread):
 
 	def __init__(self,ip_address = '127.0.0.1', port = 5000):
-		random_generator = Random.new().read
-		self.key = RSA.generate(1024, random_generator)
+		self.privkey = SigningKey.generate()
+		self.pubkey = self.privkey.verify_key
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
 		self.messages = []
 		self.conn, self.cur = connect()
 		self.public_key_list = {}
-		self.public_key_list[(self.ip_addr,self.port)] = self.key.publickey() #add community public key to public key list
+		self.public_key_list[(self.ip_addr,self.port)] = self.pubkey #add community public key to public key list
 		self.port_equiv = {}
 		self.port_equiv_reverse = {}
-		self.privkey = self.key.exportKey()
 		self.miners = []
 		self.received_transaction_from = {}
 		self.potential_miners = {}
 		self.newBlock = ''
 		self.txnList = []
+		self.pendingBlocks = Queue(1)
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -89,7 +90,7 @@ class Community_Peer(Thread):
 								self.addNewPeer(socket, json_message)
 
 							elif category == str(9):
-								self.returnToVerify(socket, json_message)
+								self.collectBlocks(json_message)
 
 							else:
 								raise ValueError('No such category')
@@ -140,15 +141,13 @@ class Community_Peer(Thread):
 		peer = socket.getpeername()
 		if peer in self.port_equiv.keys():
 			peer = self.port_equiv[peer]
+		print self.received_transaction_from
 		if peer in self.received_transaction_from:
-			publickey = RSA.importKey(self.received_transaction_from[peer])
-			signer = PKCS1_PSS.new(publickey)
-			digest = SHA256.new()
-			digest.update(json.dumps(self.newBlock, sort_keys=True))
+			verifier = VerifyKey(HexEncoder.decode(self.received_transaction_from[peer]))
 			# self.newBlock = json.loads(json.dumps(self.newBlock))
-			if signer.verify(digest, json_message['content'][0].decode('base64')):
+			if verifier.verify(json_message['content'][0].decode('base64')):
 				# parse values
-				raw_pubkey = self.received_transaction_from[peer].replace('-----BEGIN PUBLIC KEY-----', '').replace('\n', '').replace('-----END PUBLIC KEY-----', '')
+				raw_pubkey = verifier.encode(encoder=HexEncoder)
 				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
 				nonce = json_message['content'][1]
 				# get the difference of
@@ -165,7 +164,7 @@ class Community_Peer(Thread):
 				print 'Block signature not verified!'
 		else:
 			logger.warn("Peer is not in received transactions")
-			print 'Peer is not in received transactions!'
+			print 'Peer is not in received transactions!', peer
 
 		# if all blocks are verified
 		if len(self.received_transaction_from) == 0:
@@ -184,6 +183,7 @@ class Community_Peer(Thread):
 
 			# get next miner and broadcast
 			self.miners = sorted(self.potential_miners)[:(int)(len(self.potential_miners)/3)+1]
+			self.pendingBlocks = Queue(len(self.miners))
 			for i, self.miner in enumerate(self.miners):
 				if self.miner in self.port_equiv.keys():
 					print self.port_equiv[self.miner]
@@ -197,16 +197,18 @@ class Community_Peer(Thread):
 
 	def addNewPeer(self, socket, json_message):
 		peer_info = pickle.loads(json_message['content'])
-		sender_public_key = RSA.importKey(peer_info[2])
+		sender_public_key = VerifyKey(HexEncoder.decode(peer_info[2]))
 		self.public_key_list[peer_info[0], peer_info[1]] = sender_public_key
 		self.port_equiv[socket.getpeername()] = (peer_info[0], peer_info[1])
 		self.port_equiv_reverse[(peer_info[0], peer_info[1])] = socket.getpeername()
 		print "_______________"
 		print "Public Key List"
+		encodedPubKeys = {}
 		for addr in self.public_key_list:
-			print str(addr) + self.public_key_list[addr].exportKey()
+			print str(addr) + self.public_key_list[addr].encode(encoder=HexEncoder)
+			encodedPubKeys[addr] = self.public_key_list[addr].encode(encoder=HexEncoder)
 		print "_______________"
-		self.broadcastMessage(pickle.dumps(self.public_key_list),6)	
+		self.broadcastMessage(pickle.dumps(encodedPubKeys),6)	
 		if (self.ip_addr,self.port) in self.public_key_list and len(self.public_key_list) < 3:
 			for addr in self.public_key_list:
 				if addr != (self.ip_addr, self.port):
@@ -218,8 +220,18 @@ class Community_Peer(Thread):
 			self.broadcastMessage(self.miners, 5)
 			print 'Current miner is set to: ', self.miners
 
-	def returnToVerify(self, socket, json_message):
+	def collectBlocks(self, json_message):
 		content = json.loads(json_message['content'])
+		try:
+			self.pendingBlocks.put(content,False)
+			if self.pendingBlocks.qsize() == len(self.miners):
+				content = self.pendingBlocks.get()
+				self.pendingBlocks.put(content)
+				return self.returnToVerify(content)
+		except Exception as e:
+			print e
+
+	def returnToVerify(self, content):
 		self.newBlock = content['block']
 		self.txnList = eval(content['txnList'])
 		self.received_transaction_from = eval(content['contributing'])
@@ -314,14 +326,12 @@ class Community_Peer(Thread):
 			raise Exception('Address not recognized')
 
 	def createPacketAndSend(self, ip, port, message, category):
-		pubkey = self.key.publickey().exportKey()
-		# pubkey = pubkey.encode('string_escape').replace('\\\\','\\')
 		# replace with actual public key
 		if not message:
 			message = raw_input("content: ")
 		if not category:
 			category = raw_input("category: ")
-		packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
+		packet = {u'_owner': self.pubkey.encode(HexEncoder), u'_recipient': 'dummy', u'_category': str(category), u'content':message}
 		raw_string = json.dumps(packet)
 			
 		ssnd = self.peers[(ip,port)]
@@ -332,10 +342,7 @@ class Community_Peer(Thread):
 			print e
 
 	def broadcastMessage(self, message=None, category=None):
-		# for addr in self.peers:
-		# 	print addr
 
-		pubkey = self.key.publickey().exportKey()
 		if not message:
 			message = raw_input("Message: ")
 
@@ -344,7 +351,7 @@ class Community_Peer(Thread):
 
 		# print self.peers
 		for addr in self.peers:
-			packet = {u'_owner': pubkey, u'_recipient': 'dummy', u'_category': str(category), u'content':message}
+			packet = {u'_owner': self.pubkey.encode(HexEncoder), u'_recipient': 'dummy', u'_category': str(category), u'content':message}
 			raw_string = json.dumps(packet)
 			if addr != (self.ip_addr, self.port):
 				ssnd = self.peers[addr]
