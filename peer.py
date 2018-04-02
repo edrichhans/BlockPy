@@ -13,7 +13,7 @@ from chain import readChainSql, readTxnsSql
 
 
 class Peer(Thread):
-	community_ip = ('127.0.0.1', 5000)
+	community_ip = ('10.147.20.64', 5000)
 
 	def __init__(self, ip_addr, port, sim=False):
 		try:
@@ -66,7 +66,8 @@ class Peer(Thread):
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.srcv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		self.srcv.settimeout(1)
+		# self.srcv.settimeout(1)
+		# self.srcv.setblocking(0)
 		logger.info("peer.py is running",
 			extra={"addr": self.ip_addr, "port": self.port})
 		print "hostname", self.ip_addr
@@ -181,16 +182,34 @@ class Peer(Thread):
 	def recvall(self, socket):
 		# Receives all messages until timeout (workaround for receiving part of message only)
 		messages = ''
+		begin = time.time()
+		timeout = 1
+		socket.setblocking(0)
 		while 1:
+			if messages and time.time() - begin > timeout:
+				break
+			elif time.time() - begin > timeout*2:
+				break
 			try:
-				data = socket.recv(8196)
-			except:
-				# timeout (doesn't work on some systems?)
-				break
-			if data:
-				messages += data
-			else:
-				break
+				data = socket.recv(8192)
+				if data:
+					messages += data
+					#change the beginning time for measurement
+					begin = time.time()
+				else:
+					#sleep for sometime to indicate a gap
+					time.sleep(0.1)
+			except Exception as e:
+				pass
+			# try:
+			# 	data = socket.recv(8196)
+			# except:
+			# 	# timeout (doesn't work on some systems?)
+			# 	break
+			# if data:
+			# 	messages += data
+			# else:
+			# 	break
 		return messages
 
 	def waitForTxn(self, json_message, socket, message):
@@ -378,7 +397,8 @@ class Peer(Thread):
 			try:
 				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				self.peers[self.community_ip].settimeout(1)	# set timeout for recv()
+				# self.peers[self.community_ip].settimeout(1)	# set timeout for recv()
+				# self.peers[self.community_ip].setblocking(0)	# set socket to non-blocking mode
 				self.peers[self.community_ip].bind((self.ip_addr,0))
 				self.peers[self.community_ip].connect(self.community_ip)
 				logger.info("Connected to community peer",
@@ -394,7 +414,8 @@ class Peer(Thread):
 			for addr in peer_addr:
 				self.peers[addr] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[addr].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				self.peers[addr].settimeout(1)
+				# self.peers[addr].settimeout(1)
+				# self.peers[addr].setblocking(0)
 				self.peers[addr].bind((self.ip_addr, 0))
 				self.peers[addr].connect(addr)
 				logger.info("Connected to peer",
@@ -545,7 +566,7 @@ def main(argv):
 	#this is the default ip and port
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
-	ip_addr = "127.0.0.1"	# s.getsockname()[0]
+	ip_addr = "10.147.20.64"	# s.getsockname()[0]
 	port = 8000
 	sim = False
 
