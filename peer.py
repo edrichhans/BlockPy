@@ -13,7 +13,7 @@ from chain import readChainSql, readTxnsSql
 
 
 class Peer(Thread):
-	community_ip = ('10.147.20.64', 5000)
+	community_ip = ('127.0.0.1', 5000)
 
 	def __init__(self, ip_addr, port, sim=False):
 		try:
@@ -566,7 +566,7 @@ def main(argv):
 	#this is the default ip and port
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
-	ip_addr = "10.147.20.64"	# s.getsockname()[0]
+	ip_addr = "127.0.0.1"	# s.getsockname()[0]
 	port = 8000
 	sim = False
 

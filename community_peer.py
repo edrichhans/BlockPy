@@ -20,7 +20,7 @@ import pickle
 
 class Community_Peer(Thread):
 
-	def __init__(self,ip_address = '10.147.20.64', port = 5000):
+	def __init__(self,ip_address = '127.0.0.1', port = 5000):
 		random_generator = Random.new().read
 		self.key = RSA.generate(1024, random_generator)
 		self.peers = {}
@@ -371,7 +371,7 @@ def main(argv):
 	#this is the default ip and port
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
-	ip_addr = "10.147.20.64"#s.getsockname()[0]
+	ip_addr = "127.0.0.1"#s.getsockname()[0]
 	port = 5000
 
 	try:
