@@ -5,6 +5,15 @@ Currently uses python native sockets
 
 ## Setup
 
+### For Unix
+#### `cd` to `/setup` and run `bash setup.sh`.
+
+#### Change user `postgres` password to `toor`
+* `sudo -u postgres psql postgres`
+* `\password postgres`
+* `toor`
+* `\q`
+
 ### Create `database.ini`
 
 Contents:
