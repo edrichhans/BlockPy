@@ -61,8 +61,6 @@ class Peer(Thread):
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.srcv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		# self.srcv.settimeout(1)
-		# self.srcv.setblocking(0)
 		logger.info("peer.py is running",
 			extra={"addr": self.ip_addr, "port": self.port})
 		print "hostname", self.ip_addr
@@ -135,7 +133,6 @@ class Peer(Thread):
 												spec_peer.append(addr)
 												self.public_key_list[addr] = VerifyKey(HexEncoder.decode(templist[addr]))
 												self.port_equiv[addr] = addr
-										# print spec_peer
 										self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
 										self.counter += 1
 									print self.public_key_list
@@ -145,12 +142,9 @@ class Peer(Thread):
 									self.public_key_list[addr1] = VerifyKey(HexEncoder.decode(pickle.loads(json_message['content'])[0])) #add public key sent by newly connected peer
 									self.port_equiv[addr1] = addr2
 									self.port_equiv_reverse[addr2] = addr1
-									# self.sendMessage(addr2[0], addr2[1], pickle.dumps((self.ip_addr, self.port)), 8)
-									print 'REVERSE: ', self.port_equiv_reverse
-									print 'REAL: ', self.port_equiv
 									print "Public Key List"
 									for addr in self.public_key_list:
-										print str(addr) + self.public_key_list[addr].encode(encoder=HexEncoder)
+										print str(addr) + ':', self.public_key_list[addr].encode(encoder=HexEncoder)
 									print "_______________"
 								elif category == str(8):
 									print 'CAT 8: '
@@ -207,7 +201,6 @@ class Peer(Thread):
 				logger.error('self.port_equiv not set properly.')
 				print 'self.port_equiv not set properly.'
 
-			# print 'REVERSE: ', self.port_equiv, socket.getpeername()
 			self.messages.append(message)
 			if len(self.messages) >= self.max_txns:
 				# create new block
@@ -333,13 +326,9 @@ class Peer(Thread):
 	def sending(self):
 		while True:
 			command = raw_input("Enter command: ")
-
 			if command == "get peers":
-
 				spec_peer = []
-
 				inpeers = raw_input("Connect to specific peer(s)?: ")
-				
 				try:
 					inpeers = inpeers.split(' ')
 					spec_peer.append((inpeers[0], int(inpeers[1])))
@@ -372,17 +361,13 @@ class Peer(Thread):
 			try:
 				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				# self.peers[self.community_ip].settimeout(1)	# set timeout for recv()
-				# self.peers[self.community_ip].setblocking(0)	# set socket to non-blocking mode
 				self.peers[self.community_ip].bind((self.ip_addr,0))
 				self.peers[self.community_ip].connect(self.community_ip)
 				logger.info("Connected to community peer",
 					extra={"addr":self.community_ip[0], "port":str(self.community_ip[1])})
 				print "Connected: ", self.community_ip[0], str(self.community_ip[1])
-				print "here1"
 				message = (self.ip_addr,self.port,self.pubkey.encode(encoder=HexEncoder))
 				self.sendMessage(self.community_ip[0], self.community_ip[1], pickle.dumps(message), 4)
-				print "here"
 			except Exception as e:
 				logger.error('Community Server Error', exc_info=True)
 				print 'Community Server Error: ', e
@@ -391,8 +376,6 @@ class Peer(Thread):
 			for addr in peer_addr:
 				self.peers[addr] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				self.peers[addr].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				# self.peers[addr].settimeout(1)
-				# self.peers[addr].setblocking(0)
 				self.peers[addr].bind((self.ip_addr, 0))
 				self.peers[addr].connect(addr)
 				logger.info("Connected to peer",

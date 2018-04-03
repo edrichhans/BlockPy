@@ -98,14 +98,6 @@ class Community_Peer(Thread):
 							logger.error('Category Error', exc_info=True)
 							print 'Category Error', e	
 
-						# elif (message != ""):
-							#do something with the message
-							
-						# except Exception as e:
-						# 	print "Data err", e
-						# 	del self.peers[socket.getpeername()]
-						# 	continue
-
 	def recvall(self, socket):
 		# Receives all messages until timeout (workaround for receiving part of message only)
 		messages = ''
@@ -141,7 +133,6 @@ class Community_Peer(Thread):
 		peer = socket.getpeername()
 		if peer in self.port_equiv.keys():
 			peer = self.port_equiv[peer]
-		print self.received_transaction_from
 		if peer in self.received_transaction_from:
 			verifier = VerifyKey(HexEncoder.decode(self.received_transaction_from[peer]))
 			# self.newBlock = json.loads(json.dumps(self.newBlock))
@@ -186,7 +177,6 @@ class Community_Peer(Thread):
 			self.pendingBlocks = Queue(len(self.miners))
 			for i, self.miner in enumerate(self.miners):
 				if self.miner in self.port_equiv.keys():
-					print self.port_equiv[self.miner]
 					self.miners[i] = self.port_equiv[self.miner]
 			self.broadcastMessage(self.miners, 5)
 			for self.miner in self.miners:
@@ -205,7 +195,7 @@ class Community_Peer(Thread):
 		print "Public Key List"
 		encodedPubKeys = {}
 		for addr in self.public_key_list:
-			print str(addr) + self.public_key_list[addr].encode(encoder=HexEncoder)
+			print str(addr) + ':', self.public_key_list[addr].encode(encoder=HexEncoder)
 			encodedPubKeys[addr] = self.public_key_list[addr].encode(encoder=HexEncoder)
 		print "_______________"
 		self.broadcastMessage(pickle.dumps(encodedPubKeys),6)	
@@ -237,7 +227,6 @@ class Community_Peer(Thread):
 		self.received_transaction_from = eval(content['contributing'])
 		for peer in self.received_transaction_from:
 			# return block for verification
-			# print 'AA: ', self.port_equiv_reverse, self.port_equiv, peer
 			if peer in self.port_equiv_reverse.keys():
 				self.sendMessage(self.port_equiv_reverse[peer][0], self.port_equiv_reverse[peer][1], json.dumps(self.newBlock), 2)
 			else:
@@ -249,12 +238,10 @@ class Community_Peer(Thread):
 	def sending(self):
 		while True:
 			command = raw_input("Enter command: ")
-
 			if command == "get peers":
 				spec_peer = []
 				while True:
 					inpeers = raw_input("Connect to specific peer(s)?: ")
-
 					if (inpeers == 'q'):
 						break
 					else:
@@ -280,23 +267,14 @@ class Community_Peer(Thread):
 			self.peers[conn].close()
 
 	def getPeers(self, peer_addr = []):
-		# if (len(peer_addr) == 0 and len(addr) == 0):
-			try:
-				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-				self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				self.peers[self.community_ip].bind((self.ip_addr, self.port))
-				self.peers[self.community_ip].connect(self.community_ip)
-				print "Connected: ", self.community_ip[0], self.community_ip[1]
-			except:
-				print "Community server down"
-
-		# else:
-		# 	for addr in peer_addr:
-		# 		self.peers[addr] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		# 		self.peers[addr].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		# 		self.peers[addr].bind((self.ip_addr, 0))
-		# 		self.peers[addr].connect(addr)
-		# 		print "Connected: ", addr[0], str(addr[1])
+		try:
+			self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+			self.peers[self.community_ip].bind((self.ip_addr, self.port))
+			self.peers[self.community_ip].connect(self.community_ip)
+			print "Connected: ", self.community_ip[0], self.community_ip[1]
+		except:
+			print "Community server down"
 
 	def sendMessage(self, ip=None, port=None, message=None, category=None):
 		for addr in self.peers:
@@ -342,7 +320,6 @@ class Community_Peer(Thread):
 			print e
 
 	def broadcastMessage(self, message=None, category=None):
-
 		if not message:
 			message = raw_input("Message: ")
 
