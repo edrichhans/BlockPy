@@ -16,7 +16,7 @@ from nacl.hash import sha256
 from Crypto import Random
 from uuid import uuid1
 from blockpy_logging import logger
-from Queue import *
+from collections import Counter
 import pickle
 
 class Community_Peer(Thread):
@@ -27,7 +27,6 @@ class Community_Peer(Thread):
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
-		self.messages = []
 		self.conn, self.cur = connect()
 		self.public_key_list = {}
 		self.public_key_list[(self.ip_addr,self.port)] = self.pubkey #add community public key to public key list
@@ -38,7 +37,7 @@ class Community_Peer(Thread):
 		self.potential_miners = {}
 		self.newBlock = ''
 		self.txnList = []
-		self.pendingBlocks = Queue(1)
+		self.pendingBlocks = []
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -162,8 +161,8 @@ class Community_Peer(Thread):
 			#commented out for simulation purposes
 			blockNumber = addToChain(self.newBlock, self.conn, self.cur)
 			addToTxns(self.txnList, self.conn, self.cur, blockNumber)
-			self.messages = []
 			self.received_transaction_from = {}
+			self.pendingBlocks = []
 
 			# broadcast chain
 			chain = readChainSql(self.conn, self.cur)
@@ -174,7 +173,6 @@ class Community_Peer(Thread):
 
 			# get next miner and broadcast
 			self.miners = sorted(self.potential_miners)[:(int)(len(self.potential_miners)/3)+1]
-			self.pendingBlocks = Queue(len(self.miners))
 			for i, self.miner in enumerate(self.miners):
 				if self.miner in self.port_equiv.keys():
 					self.miners[i] = self.port_equiv[self.miner]
@@ -213,10 +211,13 @@ class Community_Peer(Thread):
 	def collectBlocks(self, json_message):
 		content = json.loads(json_message['content'])
 		try:
-			self.pendingBlocks.put(content,False)
-			if self.pendingBlocks.qsize() == len(self.miners):
-				content = self.pendingBlocks.get()
-				self.pendingBlocks.put(content)
+			self.pendingBlocks.append((content['block']['blockHash'],content))
+			if len(self.pendingBlocks) == len(self.miners):
+				content = Counter([x[0] for x in self.pendingBlocks])
+				for i in self.pendingBlocks:
+					if i[0] == content.most_common(1)[0][0]:
+						content = i[1]
+						break
 				return self.returnToVerify(content)
 		except Exception as e:
 			print e
