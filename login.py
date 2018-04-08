@@ -40,20 +40,29 @@ def store_info(username, hashed_pass, salt):
 
 def find_hashed_password_by_user(username):
     password_file = open_pass_file()
-    line = password_file.readline()
+    line = password_file.readline().replace(" ", "")
     elements = line.split('|')
+    # print elements
     while line:
-        print type(elements[0])
-        print "is"
-        print type(username)
         if elements[0] == username:
             print "here"
-            return elements
-        line = password_file.readline()
+            salt = uuid.uuid4().hex
+            print("\nPlease enter password: ")
+            hashed_password = hashlib.sha256(elements[2].strip() + getpass.getpass()).hexdigest()
+            return elements[1] == hashed_password
+        line = password_file.readline().replace(" ", "")
         elements=line.split('|')
+    return False
 
 
 if __name__ == "__main__":
+    #For storing new usernames and passwords
     username = ask_for_username()
     hashedPass, salt = ask_for_password()
-    print find_hashed_password_by_user(username)[1]
+    store_info(username, hashedPass, salt)
+    #Insert the following lines of code to implement login verification:
+    # while find_hashed_password_by_user(ask_for_username()) != True:
+        # print "Username or Password is Incorrect. Please try again."
+    # print "Login Successful"
+
+
