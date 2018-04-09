@@ -45,8 +45,6 @@ def find_hashed_password_by_user(username):
     # print elements
     while line:
         if elements[0] == username:
-            print "here"
-            salt = uuid.uuid4().hex
             print("\nPlease enter password: ")
             hashed_password = hashlib.sha256(elements[2].strip() + getpass.getpass()).hexdigest()
             return elements[1] == hashed_password
