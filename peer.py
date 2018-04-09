@@ -9,6 +9,7 @@ from uuid import uuid1
 import pickle, os, errno
 from blockpy_logging import logger
 from chain import readChainSql, readTxnsSql
+from login import find_hashed_password_by_user, ask_for_username
 
 
 class Peer(Thread):
@@ -549,5 +550,8 @@ def main(argv):
 	return ip_addr, port, sim
 
 if __name__ == "__main__":
+	while find_hashed_password_by_user(ask_for_username()) != True:
+		print "Username or Password is Incorrect. Please try again."
+	print "Login Successful"
 	ip_addr, port, sim = main(sys.argv[1:])
 	node = Peer(ip_addr, port, sim)
