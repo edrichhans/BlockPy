@@ -18,6 +18,8 @@ from uuid import uuid1
 from blockpy_logging import logger
 from Queue import *
 import pickle
+from login import find_hashed_password_by_user, ask_for_username, ask_for_password
+
 
 class Community_Peer(Thread):
 
@@ -89,6 +91,9 @@ class Community_Peer(Thread):
 							elif category == str(4):
 								self.addNewPeer(socket, json_message)
 
+							elif category == str(5):
+								self.authenticate(socket, json_message)
+
 							elif category == str(9):
 								self.collectBlocks(json_message)
 
@@ -97,6 +102,18 @@ class Community_Peer(Thread):
 						except Exception as e:
 							logger.error('Category Error', exc_info=True)
 							print 'Category Error', e	
+	def authenticate(self, socket, json_message):
+		print "Authenticating Peer..."
+		peer = socket.getpeername()
+		credentials = pickle.loads(json_message['content'])
+		print credentials[1]
+		if find_hashed_password_by_user(str(credentials[0]),str(credentials[1])):
+			print peer[1]
+			self.sendMessage(peer[0], peer[1], pickle.dumps(True), 11)
+			print "message sent:True"
+		else:
+			self.sendMessage(peer[0], peer[1], pickle.dumps(False), 11)
+			print "message sent:False"
 
 	def recvall(self, socket):
 		# Receives all messages until timeout (workaround for receiving part of message only)

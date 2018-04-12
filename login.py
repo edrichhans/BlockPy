@@ -38,15 +38,15 @@ def store_info(username, hashed_pass, salt):
     password_file = open_pass_file()
     password_file.write(username + " | " + hashed_pass + " | " + salt + "\n")
 
-def find_hashed_password_by_user(username):
+def find_hashed_password_by_user(username, password):
+    print "Verifying from database...."
     password_file = open_pass_file()
     line = password_file.readline().replace(" ", "")
     elements = line.split('|')
     # print elements
     while line:
         if elements[0] == username:
-            print("\nPlease enter password: ")
-            hashed_password = hashlib.sha256(elements[2].strip() + getpass.getpass()).hexdigest()
+            hashed_password = hashlib.sha256(elements[2].strip() + password).hexdigest()
             return elements[1] == hashed_password
         line = password_file.readline().replace(" ", "")
         elements=line.split('|')
