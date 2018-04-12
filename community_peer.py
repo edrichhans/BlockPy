@@ -142,9 +142,7 @@ class Community_Peer(Thread):
 				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
 				nonce = json_message['content'][1]
 				# get the difference of
-				self.potential_miners[peer] = abs(int(self.newBlock['blockHash']+nonce, 36) - int(p[:96], 36))
-				# print 'NONCE NI: ', peer
-				# print self.potential_miners[peer]
+				self.potential_miners[peer] = abs(int(hashMe(self.newBlock['blockHash']+nonce), 36) - int(p[:100]))
 
 				del self.received_transaction_from[peer]
 				logger.info("Block signature verified",
@@ -173,7 +171,7 @@ class Community_Peer(Thread):
 				extra={'chain': chain, 'txns': txns})
 
 			# get next miner and broadcast
-			self.miners = sorted(self.potential_miners)[:(int)(len(self.potential_miners)/3)+1]
+			self.miners = [i[0] for i in sorted(self.potential_miners.iteritems(), key=lambda (k,v): (v,k))][:(int)(len(self.potential_miners)/3)+1]
 			self.pendingBlocks = Queue(len(self.miners))
 			for i, self.miner in enumerate(self.miners):
 				if self.miner in self.port_equiv.keys():
