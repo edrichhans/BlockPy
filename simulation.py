@@ -13,17 +13,9 @@ ip_addr = '127.0.0.1'
 port = 6000
 myself = Peer(ip_addr, port, True)
 
-print "Connecting to peer..."
-ip_addr = raw_input("IP Address: ")
-port = raw_input("Port: ")
-if ip_addr and port:
-	myself.getPeers([(ip_addr, int(port))])
-else:
-	myself.getPeers([])	
+print "Connecting to peers..."
 
 while True:
-	ip_addr = raw_input("Send to IP Address: ")
-	port = raw_input("Send to Port: ")
 	sender = raw_input("Sender: ")
 	receiver = raw_input("Receiver: ")
 	transaction = raw_input("Path: ")
