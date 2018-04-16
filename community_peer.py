@@ -18,6 +18,7 @@ from blockpy_logging import logger
 from collections import Counter
 
 class Community_Peer(Thread):
+	_FINISH = False
 
 	def __init__(self,ip_address = '127.0.0.1', port = 5000):
 		self.privkey = SigningKey.generate()
@@ -45,7 +46,20 @@ class Community_Peer(Thread):
 		#add self to list of peers
 		self.peers[(self.ip_addr, self.port)] = self.srcv
 
-		Thread(target=self.listening).start()
+		self.lthread = Thread(target=self.listening)
+		self.lthread.daemon = True
+		self.lthread.start()
+
+		self.sthread = Thread(target=self.sending)
+		self.sthread.daemon = True
+		self.sthread.start()
+
+		while (1):
+			try:
+				if self._FINISH:
+					break
+			except(KeyboardInterrupt, SystemExit):
+				break
 
 	def listening(self):
 		#listen up to 5 other peers
@@ -92,6 +106,19 @@ class Community_Peer(Thread):
 						except Exception as e:
 							logger.error('Category Error', exc_info=True)
 							print 'Category Error', e	
+
+	def sending(self):
+		while True:
+			command = raw_input("Enter command: ")
+			if command == "broadcast message":
+				self.broadcastMessage()
+			elif command == 'disconnect':
+				disconnect(self.conn, self.cur)
+				self._FINISH = True
+			elif command == 'verify':
+				self.getTxn()
+			else:
+				print "Unknown command"
 
 	def recvall(self, socket):
 		# Receives all messages until timeout (workaround for receiving part of message only)

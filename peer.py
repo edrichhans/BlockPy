@@ -13,6 +13,7 @@ from login import find_hashed_password_by_user, ask_for_username
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
+	_FINISH = False
 
 	def __init__(self, ip_addr, port, sim=False):
 		try:
@@ -70,9 +71,20 @@ class Peer(Thread):
 
 		self.getPeers()
 
-		Thread(target=self.listening).start()
-		if self.sim==False:
-			Thread(target=self.sending).start()
+		self.lthread = Thread(target=self.listening)
+		self.lthread.daemon = True
+		self.lthread.start()
+		if self.sim == False:
+			self.sthread = Thread(target=self.sending)
+			self.sthread.daemon = True
+			self.sthread.start()
+
+		while (1):
+			try:
+				if self._FINISH:
+					break
+			except(KeyboardInterrupt, SystemExit):
+				break
 
 	def listening(self):
 		#listen up to 5 other peers
@@ -337,6 +349,7 @@ class Peer(Thread):
 				self.broadcastMessage()
 			elif command == 'disconnect':
 				disconnect(self.conn, self.cur)
+				self._FINISH = True
 			elif command == 'verify':
 				self.getTxn()
 			elif command == 'default':
@@ -398,8 +411,8 @@ class Peer(Thread):
 
 			hasher = sha256
 			message = self.privkey.sign(hasher(message)).encode('base64')
-
-		packet = {u'_owner': self.pubkey.encode(HexEncoder), u'_recipient': recpubkey, u'_category': str(category), u'content':message}
+			
+		packet = {u'_owner': self.pubkey.encode(encoder=HexEncoder), u'_recipient': recpubkey, u'_category': str(category), u'content':message}
 		raw_string = json.dumps(packet)
 			
 		return raw_string + '\0'
