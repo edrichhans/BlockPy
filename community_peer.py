@@ -18,7 +18,8 @@ from uuid import uuid1
 from blockpy_logging import logger
 from Queue import *
 import pickle
-from login import find_hashed_password_by_user, ask_for_username, ask_for_password
+from login import find_hashed_password_by_user, ask_for_username, ask_for_password, checkIfUsersExist, store_info, checkIfAdminExist
+import getpass
 
 
 class Community_Peer(Thread):
@@ -50,9 +51,15 @@ class Community_Peer(Thread):
 		self.srcv.bind((self.ip_addr, self.port))
 		#add self to list of peers
 		self.peers[(self.ip_addr, self.port)] = self.srcv
-
+		checkIfUsersExist(self.conn, self.cur)
+		checkIfAdminExist(self.conn, self.cur)
+		while find_hashed_password_by_user(ask_for_username(), getpass.getpass(), self.conn, self.cur, 0) != True:
+			print "Username or Password is Incorrect. Please try again."
+		print "Login Successful"
 		Thread(target=self.listening).start()
 		Thread(target=self.sending).start()
+
+
 
 	def listening(self):
 		#listen up to 5 other peers
@@ -107,7 +114,7 @@ class Community_Peer(Thread):
 		peer = socket.getpeername()
 		credentials = pickle.loads(json_message['content'])
 		print credentials[1]
-		if find_hashed_password_by_user(str(credentials[0]),str(credentials[1])):
+		if find_hashed_password_by_user(str(credentials[0]),str(credentials[1]), self.conn, self.cur):
 			print peer[1]
 			self.sendMessage(peer[0], peer[1], pickle.dumps(True), 11)
 			print "message sent:True"
@@ -252,6 +259,10 @@ class Community_Peer(Thread):
 				extra={"addr": peer[0], "port": peer[1]})
 			print 'Block returned for verification to: ', peer
 
+	def createUser(self):
+		checkIfUsersExist(self.conn, self.cur)
+		store_info(self.conn, self.cur)
+
 	def sending(self):
 		while True:
 			command = raw_input("Enter command: ")
@@ -276,6 +287,8 @@ class Community_Peer(Thread):
 				self.broadcastMessage()
 			elif command == 'disconnect':
 				disconnect(self.conn, self.cur)
+			elif command == 'create user':
+				self.createUser()
 			else:
 				print "Unknown command"
 

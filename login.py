@@ -4,15 +4,6 @@ import random
 import sys
 import uuid
 
-
-def open_pass_file():
-    try:
-        password_file = open('hashwork.txt', 'a+')
-        return password_file
-    except IOError as e:
-        print("I/O Error({0}): {1}".format(e.errno, e.strerror))
-        sys.exit()
-
 def ask_for_username():
     while True:
         print("Please enter the username you would like to use:")
@@ -34,33 +25,71 @@ def ask_for_password():
             print("Your passwords do not match. Please retry")
 
 
-def store_info(username, hashed_pass, salt):
-    password_file = open_pass_file()
-    password_file.write(username + " | " + hashed_pass + " | " + salt + "\n")
-
-def find_hashed_password_by_user(username, password):
-    print "Verifying from database...."
-    password_file = open_pass_file()
-    line = password_file.readline().replace(" ", "")
-    elements = line.split('|')
-    # print elements
-    while line:
-        if elements[0] == username:
-            hashed_password = hashlib.sha256(elements[2].strip() + password).hexdigest()
-            return elements[1] == hashed_password
-        line = password_file.readline().replace(" ", "")
-        elements=line.split('|')
-    return False
-
-
-if __name__ == "__main__":
-    #For storing new usernames and passwords
+def store_info(conn, cur, privelege = None):
     username = ask_for_username()
-    hashedPass, salt = ask_for_password()
-    store_info(username, hashedPass, salt)
+    hashed_pass, salt = ask_for_password()
+    if privelege is None:
+        privelege = 1
+    #Database integration
+    try:
+        insertSql = '''INSERT INTO users ("username", "password_hash", "salt", "privelege")
+            VALUES(%s, %s, %s, %s);'''
+        cur.execute(insertSql,(username, hashed_pass, salt, privelege))
+        conn.commit()
+    except psycopg2.ProgrammingError as error:
+        print error
+
+
+def find_hashed_password_by_user(username, password, conn, cur, privelege = None):
+    print "Verifying from database...."
+    if privelege is None:
+        privelege = 1
+    try:
+        querySql = 'SELECT * FROM users WHERE username = %s AND privelege = %s'
+        cur.execute(querySql, (username,privelege))
+        user = cur.fetchone()
+    except psycopg2.ProgrammingError as error:
+        print error
+    # print elements
+    if not user:
+        print "Incorrect User/Password."
+    else:
+        if user[0] == username:
+            hashed_password = hashlib.sha256(user[2].strip() + password).hexdigest()
+            return user[1] == hashed_password
+        else:
+            print "Incorrect User/Password."
+            return False
+
+def checkIfUsersExist(conn, cur):
+    createTableSql = 'CREATE TABLE IF NOT EXISTS users(username TEXT PRIMARY KEY, password_hash TEXT NOT NULL, salt TEXT NOT NULL, privelege INTEGER NOT NULL);'
+    cur.execute(createTableSql)
+    conn.commit()
+
+def checkIfAdminExist(conn, cur):
+    try:
+        querySql = 'SELECT * FROM users WHERE username = %s'
+        cur.execute(querySql, ("admin",))
+        user = cur.fetchone()
+    except psycopg2.ProgrammingError as error:
+        print error
+    if not user:
+        print "Admin does not exist, please enter desired credentials for admin:"
+        store_info(conn, cur, 0)
+
+
+def dropUsers(conn, cur):
+    deleteTableSql = 'DROP TABLE IF EXISTS users;'
+    cur.execute(deleteTableSql)
+    conn.commit()
+
+
+# if __name__ == "__main__":
+    #For storing new usernames and passwords
+    # username = ask_for_username()
+    # hashedPass, salt = ask_for_password()
+    # store_info(username, hashedPass, salt)
     #Insert the following lines of code to implement login verification:
     # while find_hashed_password_by_user(ask_for_username()) != True:
         # print "Username or Password is Incorrect. Please try again."
     # print "Login Successful"
-
-

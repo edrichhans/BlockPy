@@ -9,7 +9,7 @@ from uuid import uuid1
 import pickle, os, errno
 from blockpy_logging import logger
 from chain import readChainSql, readTxnsSql
-from login import find_hashed_password_by_user, ask_for_username, ask_for_password
+from login import ask_for_username, ask_for_password
 import getpass
 
 
