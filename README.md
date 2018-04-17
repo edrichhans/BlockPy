@@ -72,6 +72,9 @@ Disconnects from the blockchain network
 ### `verify`
 Verify a transaction given its number using the blockchain.
 
+### `create user`
+Create new credentials for a peer instance.
+
 ## Files
 
 These will describe specific files and their functionalities.
@@ -105,6 +108,9 @@ Checks for validity of chain, block, hashes.
 
 ### hashMe.py
 sha256 hashing. `hashMe()` works with JSON and text formats.
+
+### login.py
+Handles `peer.py` login authentication at `community_peer.py`. Credentials are sent from `peer.py` to `community_peer.py` where they are verified, if valid authorization message is sent to peer.py which will then allow the process to send the public key list found in `community_peer.py`
 
 ## How integrity verification works
 The network implements a Merkle Root when generating a block. The merkle root is used to verify a transaction by getting and hashing together all other transactions within the same block in a manner used to generate the merkle root. The generated merkle root is then compared to the existing one from the queried block.
