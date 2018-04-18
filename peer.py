@@ -384,7 +384,7 @@ class Peer(Thread):
 					print "Connected: ", self.community_ip[0], str(self.community_ip[1])
 				else:
 					message = (self.ip_addr,self.port,self.pubkey.encode(encoder=HexEncoder))
-					self.sendMessage(self.community_ip[0], self.community_ip[1], pickle.dumps(message), 4)
+					self.peers[self.community_ip].send(self.sendMessage(None, pickle.dumps(message), 4))
 			except Exception as e:
 				logger.error('Community Server Error', exc_info=True)
 				print 'Community Server Error: ', e
@@ -398,7 +398,7 @@ class Peer(Thread):
 					extra={"addr":addr[0], "port":str(addr[1])})
 				print "Connected: ", addr[0], str(addr[1])
 				message = (self.pubkey.encode(encoder=HexEncoder))
-				self.sendMessage(addr[0],addr[1],pickle.dumps((message,self.ip_addr,self.port)),7) #reply to newly connected peer with public key
+				self.peers[addr].send(self.sendMessage(None,pickle.dumps((message,self.ip_addr,self.port)),7)) #reply to newly connected peer with public key
 				
 
 	def sendMessage(self, ip=None, port=None, message=None, category=None):
@@ -434,9 +434,7 @@ class Peer(Thread):
 				message = self.privkey.sign(hasher(message)).encode('base64')
 
 			packet = {u'_owner': self.pubkey.encode(HexEncoder), u'_recipient': self.public_key_list[addr].encode(encoder=HexEncoder), u'_category': str(category), u'content':message}
-			raw_string = json.dumps(packet)
->>>>>>> 4a3d59ef2c8c3de306ca43e15f3d8964d4ea1924
-				
+			raw_string = json.dumps(packet)				
 
 	def sendMessage(self, recpubkey=None, message=None, category=None):
 		 #replace with actual public key
@@ -518,7 +516,7 @@ class Peer(Thread):
 		else:
 			self.waitForAuth = True
 			message = (ask_for_username(),getpass.getpass())
-			self.sendMessage(self.community_ip[0], self.community_ip[1], pickle.dumps(message), 5)
+			self.peers[self.community_ip].send(self.sendMessage(None, pickle.dumps(message), 5))
 
 #main code to run when running peer.py
 #include in your input the hostname and the port you want your peer to run in

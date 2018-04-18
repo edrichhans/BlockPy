@@ -125,10 +125,10 @@ class Community_Peer(Thread):
 		print credentials[1]
 		if find_hashed_password_by_user(str(credentials[0]),str(credentials[1]), self.conn, self.cur):
 			print peer[1]
-			self.sendMessage(peer[0], peer[1], pickle.dumps(True), 11)
+			self.peers[peer].send(self.sendMessage(None, pickle.dumps(True), 11))
 			print "message sent:True"
 		else:
-			self.sendMessage(peer[0], peer[1], pickle.dumps(False), 11)
+			self.peers[peer].send(self.sendMessage(None, pickle.dumps(False), 11))
 			print "message sent:False"
 
 	def sending(self):
@@ -219,7 +219,6 @@ class Community_Peer(Thread):
 			# get next miner and broadcast
 
 			self.miners = [i[0] for i in sorted(self.potential_miners.iteritems(), key=lambda (k,v): (v,k))][:(int)(len(self.potential_miners)/3)+1]
-			self.pendingBlocks = Queue(len(self.miners))
 			for i, self.miner in enumerate(self.miners):
 				if self.miner in self.port_equiv.keys():
 					self.miners[i] = self.port_equiv[self.miner]

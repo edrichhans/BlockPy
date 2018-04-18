@@ -3,6 +3,7 @@ import hashlib
 import random
 import sys
 import uuid
+import psycopg2
 
 def ask_for_username():
     while True:
@@ -25,28 +26,28 @@ def ask_for_password():
             print("Your passwords do not match. Please retry")
 
 
-def store_info(conn, cur, privelege = None):
+def store_info(conn, cur, privilege = None):
     username = ask_for_username()
     hashed_pass, salt = ask_for_password()
-    if privelege is None:
-        privelege = 1
+    if privilege is None:
+        privilege = 1
     #Database integration
     try:
-        insertSql = '''INSERT INTO users ("username", "password_hash", "salt", "privelege")
+        insertSql = '''INSERT INTO users ("username", "password_hash", "salt", "privilege")
             VALUES(%s, %s, %s, %s);'''
-        cur.execute(insertSql,(username, hashed_pass, salt, privelege))
+        cur.execute(insertSql,(username, hashed_pass, salt, privilege))
         conn.commit()
     except psycopg2.ProgrammingError as error:
         print error
 
 
-def find_hashed_password_by_user(username, password, conn, cur, privelege = None):
+def find_hashed_password_by_user(username, password, conn, cur, privilege = None):
     print "Verifying from database...."
-    if privelege is None:
-        privelege = 1
+    if privilege is None:
+        privilege = 1
     try:
-        querySql = 'SELECT * FROM users WHERE username = %s AND privelege = %s'
-        cur.execute(querySql, (username,privelege))
+        querySql = 'SELECT * FROM users WHERE username = %s AND privilege = %s'
+        cur.execute(querySql, (username,privilege))
         user = cur.fetchone()
     except psycopg2.ProgrammingError as error:
         print error
@@ -62,7 +63,7 @@ def find_hashed_password_by_user(username, password, conn, cur, privelege = None
             return False
 
 def checkIfUsersExist(conn, cur):
-    createTableSql = 'CREATE TABLE IF NOT EXISTS users(username TEXT PRIMARY KEY, password_hash TEXT NOT NULL, salt TEXT NOT NULL, privelege INTEGER NOT NULL);'
+    createTableSql = 'CREATE TABLE IF NOT EXISTS users(username TEXT PRIMARY KEY, password_hash TEXT NOT NULL, salt TEXT NOT NULL, privilege INTEGER NOT NULL);'
     cur.execute(createTableSql)
     conn.commit()
 
@@ -73,9 +74,13 @@ def checkIfAdminExist(conn, cur):
         user = cur.fetchone()
     except psycopg2.ProgrammingError as error:
         print error
-    if not user:
-        print "Admin does not exist, please enter desired credentials for admin:"
-        store_info(conn, cur, 0)
+
+    try:
+        if not user:
+            print "Admin does not exist, please enter desired credentials for admin:"
+            store_info(conn, cur, 0)
+    except Exception as e:
+        print e
 
 
 def dropUsers(conn, cur):
