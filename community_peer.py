@@ -16,6 +16,9 @@ from nacl.hash import sha256
 from uuid import uuid1
 from blockpy_logging import logger
 from collections import Counter
+import pickle
+from login import find_hashed_password_by_user, ask_for_username, ask_for_password, checkIfUsersExist, store_info, checkIfAdminExist
+import getpass
 
 class Community_Peer(Thread):
 	_FINISH = False
@@ -46,6 +49,12 @@ class Community_Peer(Thread):
 		#add self to list of peers
 		self.peers[(self.ip_addr, self.port)] = self.srcv
 
+		checkIfUsersExist(self.conn, self.cur)
+		checkIfAdminExist(self.conn, self.cur)
+		while find_hashed_password_by_user(ask_for_username(), getpass.getpass(), self.conn, self.cur, 0) != True:
+			print "Username or Password is Incorrect. Please try again."
+		print "Login Successful"
+		
 		self.lthread = Thread(target=self.listening)
 		self.lthread.daemon = True
 		self.lthread.start()
@@ -98,6 +107,9 @@ class Community_Peer(Thread):
 							elif category == str(4):
 								self.addNewPeer(socket, json_message)
 
+							elif category == str(5):
+								self.authenticate(socket, json_message)
+
 							elif category == str(9):
 								self.collectBlocks(json_message)
 
@@ -106,6 +118,18 @@ class Community_Peer(Thread):
 						except Exception as e:
 							logger.error('Category Error', exc_info=True)
 							print 'Category Error', e	
+	def authenticate(self, socket, json_message):
+		print "Authenticating Peer..."
+		peer = socket.getpeername()
+		credentials = pickle.loads(json_message['content'])
+		print credentials[1]
+		if find_hashed_password_by_user(str(credentials[0]),str(credentials[1]), self.conn, self.cur):
+			print peer[1]
+			self.sendMessage(peer[0], peer[1], pickle.dumps(True), 11)
+			print "message sent:True"
+		else:
+			self.sendMessage(peer[0], peer[1], pickle.dumps(False), 11)
+			print "message sent:False"
 
 	def sending(self):
 		while True:
@@ -259,6 +283,39 @@ class Community_Peer(Thread):
 			logger.info("Block returned for verification",
 				extra={"addr": peer[0], "port": peer[1]})
 			print 'Block returned for verification to: ', peer
+
+	def createUser(self):
+		checkIfUsersExist(self.conn, self.cur)
+		store_info(self.conn, self.cur)
+
+	def sending(self):
+		while True:
+			command = raw_input("Enter command: ")
+			if command == "get peers":
+				spec_peer = []
+				while True:
+					inpeers = raw_input("Connect to specific peer(s)?: ")
+					if (inpeers == 'q'):
+						break
+					else:
+						try:
+							inpeers = inpeers.split(' ')
+							spec_peer.append((inpeers[0], int(inpeers[1])))
+						except:
+							print "Wrong Input: Incomplete Parameters"
+
+				self.getPeers(spec_peer)
+
+			elif command == "send message":
+				self.sendMessage()
+			elif command == "broadcast message":
+				self.broadcastMessage()
+			elif command == 'disconnect':
+				disconnect(self.conn, self.cur)
+			elif command == 'create user':
+				self.createUser()
+			else:
+				print "Unknown command"
 
 	def __del__(self):
 		for conn in self.peers:

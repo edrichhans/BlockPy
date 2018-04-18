@@ -8,7 +8,8 @@ from nacl.hash import sha256
 from uuid import uuid1
 from blockpy_logging import logger
 from chain import readChainSql, readTxnsSql
-from login import find_hashed_password_by_user, ask_for_username
+from login import ask_for_username, ask_for_password
+import getpass
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
@@ -58,6 +59,8 @@ class Peer(Thread):
 		self.port_equiv = {}
 		self.counter = 0 #for making sure that a newly connected node only connects to other peers once
 		#socket for receiving messages
+		self.authenticated = False
+		self.waitForAuth = False
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.srcv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		logger.info("peer.py is running",
@@ -67,7 +70,6 @@ class Peer(Thread):
 		self.srcv.bind((self.ip_addr, self.port))
 		#add self to list of peers
 		self.peers[(self.ip_addr, self.port)] = self.srcv
-
 		self.getPeers()
 
 		self.lthread = Thread(target=self.listening)
@@ -161,6 +163,9 @@ class Peer(Thread):
 								elif category == str(10):
 									# Received new chain from community peer, check and update tables.
 									self.updateTables(json_message)
+								elif category == str(11):
+									print "Received Auth response"
+									self.getAuth(json_message)
 
 								else:
 									raise ValueError('No such category')
@@ -329,6 +334,10 @@ class Peer(Thread):
 			extra={'NewTxns': newTxns[len(myTxns):]})
 
 	def sending(self):
+		while(self.authenticated==False):
+			if self.waitForAuth == False:
+				self.getAuth()
+		self.getPeers()
 		while True:
 			command = raw_input("Enter command: ")
 			if command == "get peers":
@@ -365,15 +374,17 @@ class Peer(Thread):
 	def getPeers(self, peer_addr = [], connect_to_community_peer = True):
 		if (len(peer_addr) == 0 and connect_to_community_peer):
 			try:
-				self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-				self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				self.peers[self.community_ip].bind((self.ip_addr,0))
-				self.peers[self.community_ip].connect(self.community_ip)
-				logger.info("Connected to community peer",
-					extra={"addr":self.community_ip[0], "port":str(self.community_ip[1])})
-				print "Connected: ", self.community_ip[0], str(self.community_ip[1])
-				message = (self.ip_addr,self.port,self.pubkey.encode(encoder=HexEncoder))
-				self.peers[self.community_ip].send(self.sendMessage(None,pickle.dumps(message), 4))
+				if(self.authenticated == False):
+					self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+					self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+					self.peers[self.community_ip].bind((self.ip_addr,0))
+					self.peers[self.community_ip].connect(self.community_ip)
+					logger.info("Connected to community peer",
+						extra={"addr":self.community_ip[0], "port":str(self.community_ip[1])})
+					print "Connected: ", self.community_ip[0], str(self.community_ip[1])
+				else:
+					message = (self.ip_addr,self.port,self.pubkey.encode(encoder=HexEncoder))
+					self.sendMessage(self.community_ip[0], self.community_ip[1], pickle.dumps(message), 4)
 			except Exception as e:
 				logger.error('Community Server Error', exc_info=True)
 				print 'Community Server Error: ', e
@@ -495,6 +506,19 @@ class Peer(Thread):
 			else:
 				if not self.peers[miner].send(raw_string):
 					return False
+		return True
+
+	def getAuth(self,json_message = None): 
+		if json_message is not None:
+			self.authenticated = pickle.loads(json_message['content'])
+			print self.authenticated
+		print "Authenticating....."
+		if self.authenticated:
+			print "Login Successful"
+		else:
+			self.waitForAuth = True
+			message = (ask_for_username(),getpass.getpass())
+			self.sendMessage(self.community_ip[0], self.community_ip[1], pickle.dumps(message), 5)
 
 #main code to run when running peer.py
 #include in your input the hostname and the port you want your peer to run in
@@ -528,8 +552,5 @@ def main(argv):
 	return ip_addr, port, sim
 
 if __name__ == "__main__":
-	while find_hashed_password_by_user(ask_for_username()) != True:
-		print "Username or Password is Incorrect. Please try again."
-	print "Login Successful"
 	ip_addr, port, sim = main(sys.argv[1:])
 	node = Peer(ip_addr, port, sim)
