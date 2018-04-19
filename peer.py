@@ -1,5 +1,5 @@
 import json, socket, sys, getopt, select, datetime, time, pickle, os, errno
-from threading import Thread
+from threading import Thread, Lock
 from main import create, addToChain, connect, disconnect, addToTxns, verifyTxn
 from hashMe import hashMe
 from nacl.encoding import HexEncoder
@@ -72,6 +72,7 @@ class Peer(Thread):
 		self.peers[(self.ip_addr, self.port)] = self.srcv
 		self.getPeers()
 
+		self.lock = Lock()
 		self.lthread = Thread(target=self.listening)
 		self.lthread.daemon = True
 		self.lthread.start()
@@ -399,42 +400,6 @@ class Peer(Thread):
 				print "Connected: ", addr[0], str(addr[1])
 				message = (self.pubkey.encode(encoder=HexEncoder))
 				self.peers[addr].send(self.sendMessage(None,pickle.dumps((message,self.ip_addr,self.port)),7)) #reply to newly connected peer with public key
-				
-
-	def sendMessage(self, ip=None, port=None, message=None, category=None):
-		for addr in self.public_key_list:
-			print addr,":",self.public_key_list[addr].encode(encoder=HexEncoder)
-
-		while not ip or ip == '':
-			ip = raw_input("IP Address: ")
-
-		while not port or port == '':
-			port = raw_input("Port: ")
-			try:
-				port = int(port)
-			except Exception as e:
-				port = None
-				print e
-
-		addr = (ip,port)
-
-		if (ip, port) in self.peers:
-			 #replace with actual public key
-			if not message:
-				message = raw_input("content: ")
-
-			if not category:
-				category = input("category: ")
-
-				if not (category>0 and category<9):
-					raise ValueError('Category input not within bounds')
-
-			if category == 1:
-				hasher = sha256
-				message = self.privkey.sign(hasher(message)).encode('base64')
-
-			packet = {u'_owner': self.pubkey.encode(HexEncoder), u'_recipient': self.public_key_list[addr].encode(encoder=HexEncoder), u'_category': str(category), u'content':message}
-			raw_string = json.dumps(packet)				
 
 	def sendMessage(self, recpubkey=None, message=None, category=None):
 		 #replace with actual public key
