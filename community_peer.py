@@ -5,7 +5,7 @@ Change ip address and port of commmunity peer before running
 
 '''
 
-import json, socket, sys, getopt, select, datetime, time, pickle
+import json, socket, sys, getopt, select, datetime, time
 from threading import Thread
 from main import create, addToChain, connect, disconnect, addToTxns
 from chain import readChainSql, readTxnsSql
@@ -16,7 +16,7 @@ from nacl.hash import sha256
 from uuid import uuid1
 from blockpy_logging import logger
 from collections import Counter
-import pickle
+import json
 from login import find_hashed_password_by_user, ask_for_username, ask_for_password, checkIfUsersExist, store_info, checkIfAdminExist
 import getpass
 
@@ -100,6 +100,7 @@ class Community_Peer(Thread):
 							logger.error("Invalid format pubkey", exc_info=True)
 							print "Invalid format pubkey", e
 						
+
 						try:
 							if category == str(3):
 								self.waitForSignedBlock(socket, json_message)
@@ -115,20 +116,21 @@ class Community_Peer(Thread):
 
 							else:
 								raise ValueError('No such category')
+
 						except Exception as e:
 							logger.error('Category Error', exc_info=True)
 							print 'Category Error', e	
 	def authenticate(self, socket, json_message):
 		print "Authenticating Peer..."
 		peer = socket.getpeername()
-		credentials = pickle.loads(json_message['content'])
+		credentials = json.loads(json_message['content'])
 		print credentials[1]
 		if find_hashed_password_by_user(str(credentials[0]),str(credentials[1]), self.conn, self.cur):
 			print peer[1]
-			self.peers[peer].send(self.sendMessage(None, pickle.dumps(True), 11))
+			self.peers[peer].send(self.sendMessage(None, json.dumps(True), 11))
 			print "message sent:True"
 		else:
-			self.peers[peer].send(self.sendMessage(None, pickle.dumps(False), 11))
+			self.peers[peer].send(self.sendMessage(None, json.dumps(False), 11))
 			print "message sent:False"
 
 	def sending(self):
@@ -230,18 +232,19 @@ class Community_Peer(Thread):
 			self.potential_miners = {}
 
 	def addNewPeer(self, socket, json_message):
-		peer_info = pickle.loads(json_message['content'])
+		peer_info = json.loads(json_message['content'])
 		sender_public_key = VerifyKey(HexEncoder.decode(peer_info[2]))
-		self.public_key_list[peer_info[0], peer_info[1]] = sender_public_key
+		self.public_key_list[str(peer_info[0]), peer_info[1]] = sender_public_key
 		self.port_equiv[socket.getpeername()] = (peer_info[0], peer_info[1])
 		print "_______________"
 		print "Public Key List"
 		encodedPubKeys = {}
 		for addr in self.public_key_list:
 			print str(addr) + ':', self.public_key_list[addr].encode(encoder=HexEncoder)
-			encodedPubKeys[addr] = self.public_key_list[addr].encode(encoder=HexEncoder)
+			encodedPubKeys[str(addr)] = self.public_key_list[addr].encode(encoder=HexEncoder)
 		print "_______________"
-		self.broadcastMessage(None,pickle.dumps(encodedPubKeys),6)	
+		print encodedPubKeys
+		self.broadcastMessage(None,json.dumps(encodedPubKeys),6)	
 		if (self.ip_addr,self.port) in self.public_key_list and len(self.public_key_list) < 3:
 			for addr in self.public_key_list:
 				if addr != (self.ip_addr, self.port):
@@ -250,7 +253,7 @@ class Community_Peer(Thread):
 					
 					print 'Current miner is set to: ', self.miners	
 		if self.miners is not None:
-			self.broadcastMessage(None,self.miners, 5)
+			self.broadcastMessage(None, self.miners, 5)
 			print 'Current miner is set to: ', self.miners
 
 	def collectBlocks(self, json_message):
@@ -311,6 +314,7 @@ class Community_Peer(Thread):
 				self.broadcastMessage()
 			elif command == 'disconnect':
 				disconnect(self.conn, self.cur)
+				self._FINISH = True
 			elif command == 'create user':
 				self.createUser()
 			else:

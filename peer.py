@@ -1,4 +1,4 @@
-import json, socket, sys, getopt, select, datetime, time, pickle, os, errno
+import json, socket, sys, getopt, select, datetime, time, os, errno
 from threading import Thread, Lock
 from main import create, addToChain, connect, disconnect, addToTxns, verifyTxn
 from hashMe import hashMe
@@ -132,27 +132,30 @@ class Peer(Thread):
 								elif category == str(5):
 									self.miners=[]
 									for miner in json_message['content']:
-										self.miners.append((miner[0],miner[1]))
+										self.miners.append((str(miner[0]),miner[1]))
 									logger.info("Current miners updated",
 										extra={"miners": self.miners})
 									print 'Current miners are set to: ', self.miners
+
 								elif category == str(6):	#peer discovery - update list of public keys
 									spec_peer = [] 
-									templist = pickle.loads(json_message['content'])
+									templist = json.loads(json_message['content'])
 									
 									if self.counter < 1: #check if peer already had initial connection
 										for addr in templist: #connect to specific peers not in the local peer list
-											if addr not in self.peers:
-												spec_peer.append(addr)
-												self.public_key_list[addr] = VerifyKey(HexEncoder.decode(templist[addr]))
-												self.port_equiv[addr] = addr
+											print templist[addr]
+											addr1 = eval(addr)
+											if addr1 not in self.peers:
+												spec_peer.append(addr1)
+												self.public_key_list[addr1] = VerifyKey(HexEncoder.decode(templist[addr]))
+												self.port_equiv[addr1] = addr1
 										self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
 										self.counter += 1
 									print self.public_key_list
 								elif category == str(7): 
 									addr1 = socket.getpeername()
-									addr2 = (pickle.loads(json_message['content'])[1],pickle.loads(json_message['content'])[2])
-									self.public_key_list[addr1] = VerifyKey(HexEncoder.decode(pickle.loads(json_message['content'])[0])) #add public key sent by newly connected peer
+									addr2 = (json.loads(json_message['content'])[1],json.loads(json_message['content'])[2])
+									self.public_key_list[addr1] = VerifyKey(HexEncoder.decode(json.loads(json_message['content'])[0])) #add public key sent by newly connected peer
 									self.port_equiv[addr1] = addr2
 									print "Public Key List"
 									for addr in self.public_key_list:
@@ -160,7 +163,7 @@ class Peer(Thread):
 									print "_______________"
 								elif category == str(8):
 									print 'CAT 8: '
-									print pickle.loads(json_message['content'])
+									print json.loads(json_message['content'])
 								elif category == str(10):
 									# Received new chain from community peer, check and update tables.
 									self.updateTables(json_message)
@@ -385,7 +388,7 @@ class Peer(Thread):
 					print "Connected: ", self.community_ip[0], str(self.community_ip[1])
 				else:
 					message = (self.ip_addr,self.port,self.pubkey.encode(encoder=HexEncoder))
-					self.peers[self.community_ip].send(self.sendMessage(None, pickle.dumps(message), 4))
+					self.peers[self.community_ip].send(self.sendMessage(None, json.dumps(message), 4))
 			except Exception as e:
 				logger.error('Community Server Error', exc_info=True)
 				print 'Community Server Error: ', e
@@ -399,7 +402,7 @@ class Peer(Thread):
 					extra={"addr":addr[0], "port":str(addr[1])})
 				print "Connected: ", addr[0], str(addr[1])
 				message = (self.pubkey.encode(encoder=HexEncoder))
-				self.peers[addr].send(self.sendMessage(None,pickle.dumps((message,self.ip_addr,self.port)),7)) #reply to newly connected peer with public key
+				self.peers[addr].send(self.sendMessage(None,json.dumps((message,self.ip_addr,self.port)),7)) #reply to newly connected peer with public key
 
 	def sendMessage(self, recpubkey=None, message=None, category=None):
 		 #replace with actual public key
@@ -473,7 +476,7 @@ class Peer(Thread):
 
 	def getAuth(self,json_message = None): 
 		if json_message is not None:
-			self.authenticated = pickle.loads(json_message['content'])
+			self.authenticated = json.loads(json_message['content'])
 			print self.authenticated
 		print "Authenticating....."
 		if self.authenticated:
@@ -481,7 +484,7 @@ class Peer(Thread):
 		else:
 			self.waitForAuth = True
 			message = (ask_for_username(),getpass.getpass())
-			self.peers[self.community_ip].send(self.sendMessage(None, pickle.dumps(message), 5))
+			self.peers[self.community_ip].send(self.sendMessage(None, json.dumps(message), 5))
 
 #main code to run when running peer.py
 #include in your input the hostname and the port you want your peer to run in
