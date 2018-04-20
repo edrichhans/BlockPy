@@ -52,7 +52,7 @@ def find_hashed_password_by_user(username, password, conn, cur, privilege = None
     # print elements
     if not user:
         print "Incorrect User/Password."
-        logger.warn('Invalid Login'
+        logger.warn('Invalid Login',
             extra={'username':username, 'privilege':privilege})
         return False
     else:
@@ -63,7 +63,7 @@ def find_hashed_password_by_user(username, password, conn, cur, privilege = None
             return user[1] == hashed_password
         else:
             print "Incorrect User/Password."
-            logger.warn('Invalid Login'
+            logger.warn('Invalid Login',
                 extra={'username':username, 'privilege':privilege})
             return False
 
