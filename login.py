@@ -58,9 +58,14 @@ def find_hashed_password_by_user(username, password, conn, cur, privilege = None
     else:
         if user[0] == username:
             hashed_password = hashlib.sha256(user[2].strip() + password).hexdigest()
-            logger.info('Login successful',
-                extra={'username':username, 'privilege':privilege})
-            return user[1] == hashed_password
+            if user[1] == hashed_password:
+                logger.info('Login successful',
+                    extra={'username':username, 'privilege':privilege})
+                return True
+            else:
+                logger.warn('Invalid Login',
+                    extra={'username':username, 'privilege':privilege})
+                return False
         else:
             print "Incorrect User/Password."
             logger.warn('Invalid Login',
@@ -71,7 +76,6 @@ def checkIfUsersExist(conn, cur):
     createTableSql = 'CREATE TABLE IF NOT EXISTS users(username TEXT PRIMARY KEY, password_hash TEXT NOT NULL, salt TEXT NOT NULL, privilege INTEGER NOT NULL);'
     cur.execute(createTableSql)
     conn.commit()
-    logger.info('Users table created')
 
 def checkIfAdminExist(conn, cur):
     try:
