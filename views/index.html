@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Blockpy</title>
+	<script src="jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous">
+	</script>
+    <script src="semantic.min.js"></script>
+    <link rel="stylesheet" href="semantic.min.css">
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <div class='ui sidebar inverted left vertical menu'>
+        <a class='item active' data-tab='home'>
+            Home
+        </a>
+        <a class='item' data-tab='insert'>
+            Insert
+        </a>
+    </div>
+    <div class='pusher'>
+        <i class='big bars icon'></i>
+
+        <div class='ui container' id='main'>
+            <div class='ui active tab' id='home' data-tab='home'>
+                <h1 class='ui header'>Blocks</h1>
+                <div class='ui center aligned grid container' id='block-container'>
+                </div>
+
+                <div class='ui divider'>
+                </div>
+
+                <h1 class='ui header'>Txns</h1>
+                <Table class='ui striped small table'>
+                    <thead>
+                        <tr>
+                            <th>Txn Number</th>
+                            <th>Block Number</th>
+                            <th>Timestamp</th>
+                            <th>Content</th>
+                            <th>Owner</th>
+                            <th>Recipient</th>
+                        </tr>
+                    </thead>
+                    <tbody id='txn-body'>
+                    </tbody>
+                </Table>
+            </div>
+            <div class='ui modal block'>
+                <i class="close icon"></i>
+                <div class="header">Block</div>
+                <div class='content'>
+                    <p class='block_content'>
+                    </p>
+                </div>
+            </div>
+
+            <div class='ui tab' id='insert' data-tab='insert'>
+                <form class='ui form' id='insert' action='http://localhost:5002/insert' method='POST'>
+                    <h1 class='ui dividing header'>Insert new Transaction</h1>
+                    <div class='field'>
+                        <label>Content</label>
+                        <input type="text" name="content" placeholder="Content">
+                    </div>
+                    <button class='ui button' type='submit'>Submit</button>
+                </form>
+            </div>
+            <div class='ui modal txn'>
+                <i class="close icon"></i>
+                <div class="header">Transaction</div>
+                <div class='content'>
+                    <p class='txn_content'>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+	<script type='application/javascript' src='index.js'>
+	</script>
+</body>
+
+</html>

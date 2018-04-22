@@ -29,7 +29,7 @@ Set the port to `5432` for default postgre port.
 
 ## API
 Run `python webapp.py`, which calls a `Peer` instance from `peer.py`.
-Currently runs on http://localhost:5002
+The server runs on http://localhost:5002
 
 ### `GET /txns`
 Returns the list of transactions as a JSON object.
@@ -52,6 +52,14 @@ Returns `true` if verified, else returns `false`.
 Inserts a transaction given the content using the `content` parameter.
 Returns `true` if verified, else returns `false`.
 * Example: `curl http://localhost:5002/insert -d "content=<transaction contents here>" -X POST -v`
+
+## Sample GUI
+To run the sample GUI:
+* Run `python webapp.py` to run API server.
+* Run `python -m SimpleHTTPServer 8080` in the `/views` directory.
+* Open `localhost:8080` in browser.
+
+Note: Browser's Cross-Origin Restrictions must be disabled for this to work.
 
 
 ## Commands
@@ -111,6 +119,9 @@ sha256 hashing. `hashMe()` works with JSON and text formats.
 
 ### login.py
 Handles `peer.py` login authentication at `community_peer.py`. Credentials are sent from `peer.py` to `community_peer.py` where they are verified, if valid authorization message is sent to peer.py which will then allow the process to send the public key list found in `community_peer.py`
+
+### webapp.py
+Runs the API Server.
 
 ## How integrity verification works
 The network implements a Merkle Root when generating a block. The merkle root is used to verify a transaction by getting and hashing together all other transactions within the same block in a manner used to generate the merkle root. The generated merkle root is then compared to the existing one from the queried block.

@@ -76,7 +76,15 @@ class Peer(Thread):
 		self.lthread.start()
 		if self.sim == False:
 			self.sthread = Thread(target=self.sending)
+			# self.sthread.daemon = True
 			self.sthread.start()
+
+		# while (1):
+		# 	try:
+		# 		if self._FINISH:
+		# 			break
+		# 	except(KeyboardInterrupt, SystemExit):
+		# 		break
 
 	def listening(self):
 		#listen up to 5 other peers

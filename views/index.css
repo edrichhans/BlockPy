@@ -1,0 +1,30 @@
+h1.ui.header {
+  padding-top: 20px !important;
+}
+
+td {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+td.content, td.owner, td.recipient {
+  width: 25%;
+}
+
+.ui.popup {
+  /*max-width: ;*/
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+i.big.bars.icon {
+  margin: 20px;
+  position: absolute;
+}
+
+p {
+  white-space: pre-line;
+}

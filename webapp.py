@@ -10,8 +10,8 @@ conn = psycopg2.connect(**params)
 cur = conn.cursor()
 
 ip_addr = '127.0.0.1'
-port = 6000
-myself = Peer(ip_addr, port, True)
+port = 3000
+myself = Peer(ip_addr, port, False)
 
 app = Flask(__name__)
 api = Api(app)
@@ -84,7 +84,7 @@ class Insert(Resource):
         content = args['content']
         content = unicodedata.normalize('NFKD', content).encode('ascii','ignore')
         print content
-        return myself.sendToMiner(content)
+        return myself.sendToMiners('dummy', content)
 
 api.add_resource(Txns, '/txns')
 api.add_resource(Txns_id, '/txns/<id>')
@@ -95,4 +95,4 @@ api.add_resource(Insert, '/insert')
 
 
 if __name__ == '__main__':
-     app.run(port='5002')
+    app.run(port='5002')
