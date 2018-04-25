@@ -244,53 +244,6 @@ class Peer(Thread):
 			extra={"addr": peer[0], "port": peer[1]})
 		print 'Signed block sent to: ', peer[0], peer[1]
 
-	def waitForSignedBlock(self, socket, json_message):
-		# proof here
-		peer = socket.getpeername()
-		if peer in self.received_transaction_from:
-			verifier=self.received_transaction_from[peer]
-			self.newBlock = json.loads(json.dumps(self.newBlock))
-			if verifier.verify(json_message['content'][0].decode('base64')):
-				# parse values
-				raw_pubkey = self.received_transaction_from[peer].encode(encoder=HexEncoder)
-				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
-				nonce = json_message['content'][1]
-				# get the difference of
-				self.potential_miners[peer] = abs(int(self.newBlock['blockHash']+nonce, 36) - int(p[:96], 36))
-				# print self.potential_miners
-
-				del self.received_transaction_from[peer]
-				logger.info("Block signature verified",
-					extra={"hash": hashMe(self.newBlock)})
-				print 'Block signature verified: ', hashMe(self.newBlock)
-			else:
-				logger.warn("Block signature not verified")
-				print 'Block signature not verified!'
-		else:
-			logger.warn("Peer is not in received transactions")
-			print 'Peer is not in received transactions!'
-
-		# if all blocks are verified
-		if len(self.received_transaction_from) == 0:
-			#commented out for simulation purposes
-			blockNumber = addToChain(self.newBlock, self.conn, self.cur)
-			addToTxns(self.txnList, self.conn, self.cur, blockNumber)
-			self.messages = []
-			self.received_transaction_from = {}
-			self.received_transaction_from_reverse = {}
-
-			# get next miner and broadcast
-			self.miners = sorted(self.potential_miners)[:(int)(len(self.potential_miners)/3)+1]
-			for i, self.miner in enumerate(self.miners):
-				if self.miner in self.port_equiv.keys():
-					print self.port_equiv[self.miner]
-					self.miners[i] = self.port_equiv[self.miner]
-			self.broadcastMessage(None,self.miners,5)
-			for self.miner in self.miners:
-				logger.info("Current miner updated",
-					extra={"miner": self.miner})
-				print 'Current miner is set to: ', self.miner
-
 	def updateTables(self, json_message):
 		# reset
 		self.messages = []

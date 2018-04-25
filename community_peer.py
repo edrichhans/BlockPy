@@ -100,7 +100,6 @@ class Community_Peer(Thread):
 							logger.error("Invalid format pubkey", exc_info=True)
 							print "Invalid format pubkey", e
 						
-
 						try:
 							if category == str(3):
 								self.waitForSignedBlock(socket, json_message)
@@ -120,6 +119,7 @@ class Community_Peer(Thread):
 						except Exception as e:
 							logger.error('Category Error', exc_info=True)
 							print 'Category Error', e	
+
 	def authenticate(self, socket, json_message):
 		print "Authenticating Peer..."
 		peer = socket.getpeername()
