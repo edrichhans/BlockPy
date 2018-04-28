@@ -1,5 +1,5 @@
 import json, socket, sys, getopt, select, datetime, time, os, errno
-from threading import Thread, Lock
+from threading import Thread
 from main import create, addToChain, connect, disconnect, addToTxns, verifyTxn
 from hashMe import hashMe
 from nacl.encoding import HexEncoder
@@ -13,7 +13,7 @@ import getpass
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
-	_FINISH = False
+	_FINISH = True
 
 	def __init__(self, ip_addr, port, sim=False):
 		try:
@@ -72,27 +72,17 @@ class Peer(Thread):
 		self.peers[(self.ip_addr, self.port)] = self.srcv
 		self.getPeers()
 
-		self.lock = Lock()
 		self.lthread = Thread(target=self.listening)
-		self.lthread.daemon = True
 		self.lthread.start()
 		if self.sim == False:
 			self.sthread = Thread(target=self.sending)
-			self.sthread.daemon = True
 			self.sthread.start()
-
-		while (1):
-			try:
-				if self._FINISH:
-					break
-			except(KeyboardInterrupt, SystemExit):
-				break
 
 	def listening(self):
 		#listen up to 5 other peers
 		self.srcv.listen(5)
 
-		while True:
+		while self._FINISH:
 			read_sockets,write_sockets,error_sockets = select.select(self.peers.values(),[],[],1)
 			for socket in read_sockets:
 
@@ -125,9 +115,6 @@ class Peer(Thread):
 
 								elif category == str(2):	# verifying block
 									self.verifyBlock(socket, message)
-
-								elif category == str(3):	#waiting for signedBlock
-									self.waitForSignedBlock(socket, json_message)
 
 								elif category == str(5):
 									self.miners=[]
@@ -244,53 +231,6 @@ class Peer(Thread):
 			extra={"addr": peer[0], "port": peer[1]})
 		print 'Signed block sent to: ', peer[0], peer[1]
 
-	def waitForSignedBlock(self, socket, json_message):
-		# proof here
-		peer = socket.getpeername()
-		if peer in self.received_transaction_from:
-			verifier=self.received_transaction_from[peer]
-			self.newBlock = json.loads(json.dumps(self.newBlock))
-			if verifier.verify(json_message['content'][0].decode('base64')):
-				# parse values
-				raw_pubkey = self.received_transaction_from[peer].encode(encoder=HexEncoder)
-				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
-				nonce = json_message['content'][1]
-				# get the difference of
-				self.potential_miners[peer] = abs(int(self.newBlock['blockHash']+nonce, 36) - int(p[:96], 36))
-				# print self.potential_miners
-
-				del self.received_transaction_from[peer]
-				logger.info("Block signature verified",
-					extra={"hash": hashMe(self.newBlock)})
-				print 'Block signature verified: ', hashMe(self.newBlock)
-			else:
-				logger.warn("Block signature not verified")
-				print 'Block signature not verified!'
-		else:
-			logger.warn("Peer is not in received transactions")
-			print 'Peer is not in received transactions!'
-
-		# if all blocks are verified
-		if len(self.received_transaction_from) == 0:
-			#commented out for simulation purposes
-			blockNumber = addToChain(self.newBlock, self.conn, self.cur)
-			addToTxns(self.txnList, self.conn, self.cur, blockNumber)
-			self.messages = []
-			self.received_transaction_from = {}
-			self.received_transaction_from_reverse = {}
-
-			# get next miner and broadcast
-			self.miners = sorted(self.potential_miners)[:(int)(len(self.potential_miners)/3)+1]
-			for i, self.miner in enumerate(self.miners):
-				if self.miner in self.port_equiv.keys():
-					print self.port_equiv[self.miner]
-					self.miners[i] = self.port_equiv[self.miner]
-			self.broadcastMessage(None,self.miners,5)
-			for self.miner in self.miners:
-				logger.info("Current miner updated",
-					extra={"miner": self.miner})
-				print 'Current miner is set to: ', self.miner
-
 	def updateTables(self, json_message):
 		# reset
 		self.messages = []
@@ -342,7 +282,7 @@ class Peer(Thread):
 			if self.waitForAuth == False:
 				self.getAuth()
 		self.getPeers()
-		while True:
+		while self._FINISH:
 			command = raw_input("Enter command: ")
 			if command == "get peers":
 				spec_peer = []
@@ -361,7 +301,7 @@ class Peer(Thread):
 				self.broadcastMessage()
 			elif command == 'disconnect':
 				disconnect(self.conn, self.cur)
-				self._FINISH = True
+				self._FINISH = False
 			elif command == 'verify':
 				self.getTxn()
 			elif command == 'default':
