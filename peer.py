@@ -10,7 +10,7 @@ import pickle, os, errno
 from blockpy_logging import logger
 from chain import readChainSql, readTxnsSql
 from login import ask_for_username, ask_for_password
-import getpass
+import getpass, hashlib
 
 
 class Peer(Thread):
@@ -534,11 +534,10 @@ class Peer(Thread):
 			print "Login Successful"
 		else:
 			self.waitForAuth = True
-			message = (ask_for_username(),getpass.getpass())
-			self.sendMessage(self.community_ip[0], self.community_ip[1], pickle.dumps(message), 5)
-
-			
-
+			username = ask_for_username()
+			hashed_password = hashlib.sha256(getpass.getpass()).hexdigest()
+			message = (username, hashed_password)
+			self.peers[self.community_ip].send(self.sendMessage(None, json.dumps(message), 5))
 
 
 #main code to run when running peer.py

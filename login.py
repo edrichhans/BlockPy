@@ -11,13 +11,19 @@ def ask_for_username():
         return username
 
 
-def ask_for_password():
+def ask_for_password(privilege = None):
     while True:
         print("What password would you like to create?")
         salt = uuid.uuid4().hex
-        hashed_password1 = hashlib.sha256(salt + getpass.getpass()).hexdigest()
-        print("\nPlease enter password again.")
-        hashed_password2 = hashlib.sha256(salt + getpass.getpass()).hexdigest()
+        if privilege is None:
+            password1 = hashlib.sha256(getpass.getpass()).hexdigest()
+            print("\nPlease enter password again.")
+            password2 = hashlib.sha256(getpass.getpass()).hexdigest()
+        else:
+            password1 = getpass.getpass()
+            password2 = getpass.getpass()
+        hashed_password1 = hashlib.sha256(salt + password1).hexdigest()
+        hashed_password2 = hashlib.sha256(salt + password2).hexdigest()
 
         if hashed_password1 == hashed_password2:
             return hashed_password2, salt
@@ -27,9 +33,9 @@ def ask_for_password():
 
 def store_info(conn, cur, privelege = None):
     username = ask_for_username()
-    hashed_pass, salt = ask_for_password()
-    if privelege is None:
-        privelege = 1
+    hashed_pass, salt = ask_for_password(privilege)
+    if privilege is None:
+        privilege = 1
     #Database integration
     try:
         insertSql = '''INSERT INTO users ("username", "password_hash", "salt", "privelege")
