@@ -17,6 +17,9 @@
         <a class='item' data-tab='insert'>
             Insert
         </a>
+        <a class='item' data-tab='peers'>
+            Peers
+        </a>
     </div>
     <div class='pusher'>
         <i class='big bars icon'></i>
@@ -40,6 +43,7 @@
                             <th>Content</th>
                             <th>Owner</th>
                             <th>Recipient</th>
+                            <th>Verified</th>
                         </tr>
                     </thead>
                     <tbody id='txn-body'>
@@ -64,6 +68,19 @@
                     </div>
                     <button class='ui button' type='submit'>Submit</button>
                 </form>
+            </div>
+            <div class='ui tab' id='peers' data-tab='peers'>
+                <h1 class='ui header'>Peers</h1>
+                <Table class='ui striped small table'>
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Port</th>
+                        </tr>
+                    </thead>
+                    <tbody id='peers-body'>
+                    </tbody>
+                </Table>
             </div>
             <div class='ui modal txn'>
                 <i class="close icon"></i>

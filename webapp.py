@@ -86,12 +86,17 @@ class Insert(Resource):
         print content
         return myself.sendToMiners('dummy', content)
 
+class GetPeers(Resource):
+    def get(self):
+        return jsonify(myself.getPeersAPI())
+
 api.add_resource(Txns, '/txns')
 api.add_resource(Txns_id, '/txns/<id>')
 api.add_resource(Blocks, '/blocks')
 api.add_resource(Blocks_id, '/blocks/<id>')
 api.add_resource(Verify, '/verify')
 api.add_resource(Insert, '/insert')
+api.add_resource(GetPeers, '/peers')
 
 
 if __name__ == '__main__':

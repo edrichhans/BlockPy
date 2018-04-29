@@ -399,15 +399,15 @@ class Peer(Thread):
 			if verifyTxn(txn, self.conn, self.cur):
 				logger.info('Transaction #%s verified!', str(txn))
 				print 'Transaction #' + str(txn) + ' verified!'
-				return True
+				return {txn: True}
 			else:
 				logger.warn('Transaction #%s failed verification!', str(txn))
 				print 'Transaction #' + str(txn) + ' failed verification!'
-				return False
+				return {txn: False}
 		except Exception as e:
 			logger.error('Verify transaction error',  exc_info=True)
 			print 'Verification error:', e
-			return False
+			return {txn: False}
 
 	def sendToMiners(self, recpubkey=None, message=None):
 		raw_string = self.sendMessage(recpubkey,message,1)
@@ -433,6 +433,9 @@ class Peer(Thread):
 			self.waitForAuth = True
 			message = (ask_for_username(),getpass.getpass())
 			self.peers[self.community_ip].send(self.sendMessage(None, json.dumps(message), 5))
+
+	def getPeersAPI(self):
+		return self.peers.keys()
 
 #main code to run when running peer.py
 #include in your input the hostname and the port you want your peer to run in
