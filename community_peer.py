@@ -16,9 +16,14 @@ from nacl.hash import sha256
 from Crypto import Random
 from uuid import uuid1
 from blockpy_logging import logger
+<<<<<<< Updated upstream
 from Queue import *
 import pickle
 from login import find_hashed_password_by_user, ask_for_username, ask_for_password, checkIfUsersExist, store_info, checkIfAdminExist
+=======
+from collections import Counter
+from login import find_hashed_password_by_user, ask_for_username, ask_for_password, checkIfUsersExist, store_info, checkIfAdminExist, dropUsers
+>>>>>>> Stashed changes
 import getpass
 
 
@@ -263,6 +268,8 @@ class Community_Peer(Thread):
 		checkIfUsersExist(self.conn, self.cur)
 		store_info(self.conn, self.cur)
 
+	def resetUsers(self):
+		dropUsers(self.conn, self.cur)
 	def sending(self):
 		while True:
 			command = raw_input("Enter command: ")
@@ -289,6 +296,8 @@ class Community_Peer(Thread):
 				disconnect(self.conn, self.cur)
 			elif command == 'create user':
 				self.createUser()
+			elif command == 'reset users':
+				self.resetUsers()
 			else:
 				print "Unknown command"
 

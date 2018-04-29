@@ -4,7 +4,7 @@ sudo pip install virtualenv
 virtualenv --version
 virtualenv ../venv
 source ../venv/bin/activate
-sudo pip install -r pip-requirements.txt
+sudo pip install -r requirements-pip.txt
 cat > ../database.ini <<- "EOF"
 [postgresql]
 host=localhost
