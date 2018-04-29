@@ -83,6 +83,9 @@ Verify a transaction given its number using the blockchain.
 ### `create user`
 Create new credentials for a peer instance.
 
+### `reset users`
+Drop users table.
+
 ## Files
 
 These will describe specific files and their functionalities.
