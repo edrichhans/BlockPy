@@ -540,6 +540,7 @@ class Peer(Thread):
 			self.peers[self.community_ip].send(self.sendMessage(None, json.dumps(message), 5))
 
 
+
 #main code to run when running peer.py
 #include in your input the hostname and the port you want your peer to run in
 #example: python peer.py -h 127.0.0.1 -p 6000
