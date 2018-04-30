@@ -16,7 +16,7 @@ from nacl.hash import sha256
 from uuid import uuid1
 from blockpy_logging import logger
 from collections import Counter
-from login import find_hashed_password_by_user, ask_for_username, ask_for_password, checkIfUsersExist, store_info, checkIfAdminExist
+from login import get_keys, find_hashed_password_by_user, ask_for_username, ask_for_password, checkIfUsersExist, store_info, checkIfAdminExist
 import getpass
 
 class Community_Peer(Thread):
@@ -91,7 +91,10 @@ class Community_Peer(Thread):
 						
 
 						try:
-							if category == str(3):
+							if category == str(0):
+								self.sendKeys(socket, json_message)
+
+							elif category == str(3):
 								self.waitForSignedBlock(socket, json_message)
 
 							elif category == str(4):
@@ -109,6 +112,17 @@ class Community_Peer(Thread):
 						except Exception as e:
 							logger.error('Category Error', exc_info=True)
 							print 'Category Error', e	
+
+	def sendKeys(self, socket, json_message):
+		peer = socket.getpeername()
+		credentials = json.loads(json_message['content'])
+		if find_hashed_password_by_user(str(credentials[0]),str(credentials[1]), self.conn, self.cur):
+			keys = get_keys(str(credentials[0]),str(credentials[1]), self.conn, self.cur)
+			self.peers[peer].send(self.sendMessage(None, keys, str(0)))
+			print "Keys sent"
+		else:
+			self.peers[peer].send(self.sendMessage(None, "Wrong credentials", 8))
+			print "message sent:False"
 
 	def authenticate(self, socket, json_message):
 		print "Authenticating Peer..."
@@ -335,7 +349,7 @@ class Community_Peer(Thread):
 
 			if not (category>0 and category<9):
 				raise ValueError('Category input not within bounds')
-
+	
 		if category == 1:
 
 			if not recpubkey:
@@ -343,8 +357,8 @@ class Community_Peer(Thread):
 
 			hasher = sha256
 			message = self.privkey.sign(hasher(message)).encode('base64')
-
-		packet = {u'_owner': self.pubkey.encode(HexEncoder), u'_recipient': recpubkey, u'_category': str(category), u'content':message}
+		
+		packet = {'_owner': self.pubkey.encode(HexEncoder), '_recipient': recpubkey, '_category': str(category), 'content':message}
 		raw_string = json.dumps(packet)
 			
 		return raw_string + '\0'

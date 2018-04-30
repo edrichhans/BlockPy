@@ -1,5 +1,7 @@
 import getpass, hashlib, random, sys, uuid, psycopg2
 from blockpy_logging import logger
+from nacl.encoding import HexEncoder
+from nacl.signing import SigningKey, VerifyKey
 
 def ask_for_username():
     while True:
@@ -25,12 +27,13 @@ def ask_for_password():
 def store_info(conn, cur, privilege = None):
     username = ask_for_username()
     hashed_pass, salt = ask_for_password()
+    
     if privilege is None:
         privilege = 1
     #Database integration
     try:
         insertSql = '''INSERT INTO users ("username", "password_hash", "salt", "privilege")
-            VALUES(%s, %s, %s, %s);'''
+            VALUES(%s, %s, %s, %s,);'''
         cur.execute(insertSql,(username, hashed_pass, salt, privilege))
         conn.commit()
         logger.info('User Created',
@@ -38,6 +41,25 @@ def store_info(conn, cur, privilege = None):
     except psycopg2.ProgrammingError as error:
         print error
 
+def get_keys(username, password, conn, cur, privilege = None):
+    if privilege is None:
+        privilege = 1
+    try:
+        querySql = 'SELECT privkey, pubkey FROM users WHERE username = %s AND privilege = %s'
+        cur.execute(querySql, (username,privilege))
+        user = cur.fetchone()
+    except psycopg2.ProgrammingError as error:
+        print error
+
+    if not user:
+        print "Incorrect User/Password."
+        logger.warn('Invalid Login',
+            extra={'username':username, 'privilege':privilege})
+        return False
+    else:
+        privkey = SigningKey.generate()
+        pubkey = privkey.verify_key
+        return {'privkey': privkey, 'pubkey': pubkey}
 
 def find_hashed_password_by_user(username, password, conn, cur, privilege = None):
     print "Verifying from database...."

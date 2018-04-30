@@ -22,27 +22,6 @@ class Peer(Thread):
 			if e.errno != errno.EEXIST:
 				raise
 
-		try:
-			with open("keys/privkey.txt","r") as fpriv:
-				key = HexEncoder.decode(fpriv.read())
-				self.privkey = SigningKey(key)
-
-			with open("keys/pubkey.txt","r") as fpub:
-				key = HexEncoder.decode(fpub.read())
-				self.pubkey = VerifyKey(key)
-		except:
-			self.privkey = SigningKey.generate()
-			self.pubkey = self.privkey.verify_key
-
-			with open("keys/pubkey.txt","w") as fpub:
-				fpub.write(self.pubkey.encode(encoder=HexEncoder))
-				logger.info("Created public key",
-					extra={"publickey": self.pubkey.encode(encoder=HexEncoder)})
-
-			with open("keys/privkey.txt","w") as fpriv:
-				fpriv.write(self.privkey.encode(encoder=HexEncoder))
-				logger.info("Created private key")
-
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
@@ -57,6 +36,8 @@ class Peer(Thread):
 		self.miners = []
 		self.public_key_list = {}
 		self.port_equiv = {}
+		self.pubkey = None
+		self.privkey = None
 		self.counter = 0 #for making sure that a newly connected node only connects to other peers once
 		#socket for receiving messages
 		self.authenticated = False
@@ -109,7 +90,10 @@ class Peer(Thread):
 								logger.info("Message received",
 									extra={"owner":str(socket.getpeername()), "category": category, "received_message": message})
 
-								if category == str(1):	#waiting for transaction
+								if category == str(0):
+									self.createKeys(json_message)
+
+								elif category == str(1):	#waiting for transaction
 									json_message['content'] = self.public_key_list[socket.getpeername()].verify(json_message['content'].decode('base64'))
 									self.waitForTxn(json_message, socket, message)
 
@@ -139,6 +123,7 @@ class Peer(Thread):
 										self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
 										self.counter += 1
 									print self.public_key_list
+
 								elif category == str(7): 
 									addr1 = socket.getpeername()
 									addr2 = (json.loads(json_message['content'])[1],json.loads(json_message['content'])[2])
@@ -148,12 +133,15 @@ class Peer(Thread):
 									for addr in self.public_key_list:
 										print str(addr) + ':', self.public_key_list[addr].encode(encoder=HexEncoder)
 									print "_______________"
+
 								elif category == str(8):
 									print 'CAT 8: '
 									print json.loads(json_message['content'])
+
 								elif category == str(10):
 									# Received new chain from community peer, check and update tables.
 									self.updateTables(json_message)
+
 								elif category == str(11):
 									print "Received Auth response"
 									self.getAuth(json_message)
@@ -278,10 +266,11 @@ class Peer(Thread):
 			extra={'NewTxns': newTxns[len(myTxns):]})
 
 	def sending(self):
-		while(self.authenticated==False):
+		while(self.authenticated==False or self.pubkey==None or self.privkey==None):
 			if self.waitForAuth == False:
 				self.getAuth()
 		self.getPeers()
+
 		while self._FINISH:
 			command = raw_input("Enter command: ")
 			if command == "get peers":
@@ -331,7 +320,7 @@ class Peer(Thread):
 					self.peers[self.community_ip].send(self.sendMessage(None, json.dumps(message), 4))
 			except Exception as e:
 				logger.error('Community Server Error', exc_info=True)
-				print 'Community Server Error: ', e
+				print 'n\Community Server Error: ', e
 		else:
 			for addr in peer_addr:
 				self.peers[addr] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -364,7 +353,7 @@ class Peer(Thread):
 			hasher = sha256
 			message = self.privkey.sign(hasher(message)).encode('base64')
 			
-		packet = {u'_owner': self.pubkey.encode(encoder=HexEncoder), u'_recipient': recpubkey, u'_category': str(category), u'content':message}
+		packet = {'_owner': self.pubkey.encode(encoder=HexEncoder), '_recipient': recpubkey, '_category': str(category), 'content':message}
 		raw_string = json.dumps(packet)
 			
 		return raw_string + '\0'
@@ -414,6 +403,34 @@ class Peer(Thread):
 					return False
 		return True
 
+	def createKeys(self, keys):
+
+		self.privkey = SigningKey(HexEncoder.decode(keys['content']['privkey']))
+		self.pubkey = VerifyKey(HexEncoder.decode(keys['content']['pubkey']))
+
+		with open("keys/pubkey.txt","w") as fpub:
+			fpub.write(self.pubkey.encode(encoder=HexEncoder))
+			logger.info("Created public key",
+				extra={"publickey": self.pubkey.encode(encoder=HexEncoder)})
+
+		with open("keys/privkey.txt","w") as fpriv:
+			fpriv.write(self.privkey.encode(encoder=HexEncoder))
+			logger.info("Created private key")
+
+	def getKeys(self, credentials):
+		try:
+			with open("keys/privkey.txt","r") as fpriv:
+				key = HexEncoder.decode(fpriv.read())
+				self.privkey = SigningKey(key)
+
+			with open("keys/pubkey.txt","r") as fpub:
+				key = HexEncoder.decode(fpub.read())
+				self.pubkey = VerifyKey(key)
+		except:
+			packet = {'_category': str(0), 'content': json.dumps(credentials)}
+			raw_string = json.dumps(packet) + '\0'
+			self.peers[self.community_ip].send(raw_string)
+
 	def getAuth(self,json_message = None): 
 		if json_message is not None:
 			self.authenticated = json.loads(json_message['content'])
@@ -421,11 +438,14 @@ class Peer(Thread):
 		print "Authenticating....."
 		if self.authenticated:
 			print "Login Successful"
+			self.getKeys(self.credentials)
 		else:
 			self.waitForAuth = True
-			message = (ask_for_username(),getpass.getpass())
-			self.peers[self.community_ip].send(self.sendMessage(None, json.dumps(message), 5))
-
+			self.credentials = (ask_for_username(),getpass.getpass())
+			packet = {'_category': str(5), 'content':json.dumps(self.credentials)}
+			raw_string = json.dumps(packet) + '\0'
+			self.peers[self.community_ip].send(raw_string)
+			
 #main code to run when running peer.py
 #include in your input the hostname and the port you want your peer to run in
 #example: python peer.py -h 127.0.0.1 -p 6000
