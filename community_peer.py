@@ -56,18 +56,9 @@ class Community_Peer(Thread):
 		print "Login Successful"
 		
 		self.lthread = Thread(target=self.listening)
-		# self.lthread.daemon = True
 		self.lthread.start()
 		self.sthread = Thread(target=self.sending)
-		# self.sthread.daemon = True
 		self.sthread.start()
-
-		# while (1):
-		# 	try:
-		# 		if self._FINISH:
-		# 			break
-		# 	except(KeyboardInterrupt, SystemExit):
-		# 		break
 
 	def listening(self):
 		#listen up to 5 other peers
@@ -292,25 +283,12 @@ class Community_Peer(Thread):
 
 	def resetUsers(self):
 		dropUsers(self.conn, self.cur)
+
 	def sending(self):
 		while self._FINISH:
 			command = raw_input("Enter command: ")
-			if command == "get peers":
-				spec_peer = []
-				while True:
-					inpeers = raw_input("Connect to specific peer(s)?: ")
-					if (inpeers == 'q'):
-						break
-					else:
-						try:
-							inpeers = inpeers.split(' ')
-							spec_peer.append((inpeers[0], int(inpeers[1])))
-						except:
-							print "Wrong Input: Incomplete Parameters"
-
-				self.getPeers(spec_peer)
-
-			elif command == "send message":
+			
+			if command == "send":
 				self.sendMessage()
 			elif command == "broadcast message":
 				self.broadcastMessage()
@@ -346,9 +324,6 @@ class Community_Peer(Thread):
 
 		if not category:
 			category = input("category: ")
-
-			if not (category>0 and category<9):
-				raise ValueError('Category input not within bounds')
 
 		if category == 1:
 

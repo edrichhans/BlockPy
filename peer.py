@@ -76,15 +76,7 @@ class Peer(Thread):
 		self.lthread.start()
 		if self.sim == False:
 			self.sthread = Thread(target=self.sending)
-			# self.sthread.daemon = True
 			self.sthread.start()
-
-		# while (1):
-		# 	try:
-		# 		if self._FINISH:
-		# 			break
-		# 	except(KeyboardInterrupt, SystemExit):
-		# 		break
 
 	def listening(self):
 		#listen up to 5 other peers
@@ -147,6 +139,7 @@ class Peer(Thread):
 										self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
 										self.counter += 1
 									print self.public_key_list
+
 								elif category == str(7): 
 									addr1 = socket.getpeername()
 									addr2 = (json.loads(json_message['content'])[1],json.loads(json_message['content'])[2])
@@ -156,12 +149,15 @@ class Peer(Thread):
 									for addr in self.public_key_list:
 										print str(addr) + ':', self.public_key_list[addr].encode(encoder=HexEncoder)
 									print "_______________"
+
 								elif category == str(8):
 									print 'CAT 8: '
 									print json.loads(json_message['content'])
+
 								elif category == str(10):
 									# Received new chain from community peer, check and update tables.
 									self.updateTables(json_message)
+
 								elif category == str(11):
 									print "Received Auth response"
 									self.getAuth(json_message)
@@ -286,24 +282,15 @@ class Peer(Thread):
 			extra={'NewTxns': newTxns[len(myTxns):]})
 
 	def sending(self):
+
 		while(self.authenticated==False):
 			if self.waitForAuth == False:
 				self.getAuth()
 		self.getPeers()
+
 		while self._FINISH:
 			command = raw_input("Enter command: ")
-			if command == "get peers":
-				spec_peer = []
-				inpeers = raw_input("Connect to specific peer(s)?: ")
-				try:
-					inpeers = inpeers.split(' ')
-					spec_peer.append((inpeers[0], int(inpeers[1])))
-				except:
-					print "Wrong Input"
-
-				self.getPeers(spec_peer,False)
-
-			elif command == "send":
+			if command == "send":
 				self.sendToMiners()
 			elif command == "broadcast message":
 				self.broadcastMessage()
@@ -317,7 +304,6 @@ class Peer(Thread):
 				self.sendToMiners("dummy",message)
 			else:
 				print "Unknown command"
-
 
 	def __del__(self):
 		for conn in self.peers:
@@ -360,9 +346,6 @@ class Peer(Thread):
 
 		if not category:
 			category = input("category: ")
-
-			if not (category>0 and category<9):
-				raise ValueError('Category input not within bounds')
 
 		if category == 1:
 
