@@ -70,6 +70,7 @@ class Peer(Thread):
 		self.srcv.bind((self.ip_addr, self.port))
 		#add self to list of peers
 		self.peers[(self.ip_addr, self.port)] = self.srcv
+		self.is_miner = False
 		self.getPeers()
 
 		self.lthread = Thread(target=self.listening)
@@ -111,15 +112,19 @@ class Peer(Thread):
 
 								if category == str(1):	#waiting for transaction
 									json_message['content'] = self.public_key_list[socket.getpeername()].verify(json_message['content'].decode('base64'))
-									self.waitForTxn(json_message, socket, message)
+									self.waitForTxn(json_message, message, socket)
 
 								elif category == str(2):	# verifying block
 									self.verifyBlock(socket, message)
 
 								elif category == str(5):
 									self.miners=[]
+									self.is_miner = False
 									for miner in json_message['content']:
-										self.miners.append((str(miner[0]),miner[1]))
+										if (miner[0],miner[1]) == (self.ip_addr,self.port):
+											self.is_miner = True
+										else:
+											self.miners.append((miner[0],miner[1]))
 									logger.info("Current miners updated",
 										extra={"miners": self.miners})
 									print 'Current miners are set to: ', self.miners
@@ -191,20 +196,26 @@ class Peer(Thread):
 				pass
 		return messages
 
-	def waitForTxn(self, json_message, socket, message):
+	def waitForTxn(self, json_message, message, socket = None):
 		try:
 			owner = json_message['_owner']
-			if socket.getpeername() in self.port_equiv:
-				self.received_transaction_from[socket.getpeername()] = owner
-				self.received_transaction_from_reverse[self.port_equiv[socket.getpeername()]] = owner
-			elif socket.getpeername() in self.port_equiv.values():
-				for key,value in self.port_equiv.items():
-					if socket.getpeername() == value:
-						self.received_transaction_from_reverse[value] = owner
-						self.received_transaction_from[key] = owner
+			#if self is miner and not in miner list, simpler solution
+			if socket is None and self.is_miner:
+				self.received_transaction_from[(self.ip_addr, self.port)] = owner
+				self.received_transaction_from_reverse[(self.ip_addr, self.port)] = owner
+				print "Mining for Self..."
 			else:
-				logger.error('self.port_equiv not set properly.')
-				print 'self.port_equiv not set properly.'
+				if socket.getpeername() in self.port_equiv:
+					self.received_transaction_from[socket.getpeername()] = owner
+					self.received_transaction_from_reverse[self.port_equiv[socket.getpeername()]] = owner
+				elif socket.getpeername() in self.port_equiv.values():
+					for key,value in self.port_equiv.items():
+						if socket.getpeername() == value:
+							self.received_transaction_from_reverse[value] = owner
+							self.received_transaction_from[key] = owner
+				else:
+					logger.error('self.port_equiv not set properly.')
+					print 'self.port_equiv not set properly.'
 
 			self.messages.append(message)
 			if len(self.messages) >= self.max_txns:
@@ -403,6 +414,20 @@ class Peer(Thread):
 			else:
 				if not self.peers[miner].send(raw_string):
 					return False
+		#Handling if self is miner, after sending to other miners, trigger waitForTxn			
+		if self.is_miner:
+			raw_string = self.sendMessage(self.pubkey.encode(HexEncoder),message,1)[:-1] #remove '\0' delimeter
+			print "raw_string_miner" + raw_string
+			json_message = json.loads(raw_string)
+			print "json_message_from_self"
+			print json_message
+			category = str(json_message['_category'])
+			logger.info("Mining message from self",
+				extra={"owner":str((self.ip_addr,self.port)), "category": category, "received_message": raw_input})
+			if category == str(1):	#waiting for transaction
+				# json_message['content'] = self.public_key_list[socket.getpeername()].verify(json_message['content'].decode('base64'))
+				self.waitForTxn(json_message, raw_string)
+		
 		return True
 
 	def getAuth(self,json_message = None): 
