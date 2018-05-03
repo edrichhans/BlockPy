@@ -17,17 +17,19 @@ from uuid import uuid1
 from blockpy_logging import logger
 from collections import Counter
 from login import find_hashed_password_by_user, ask_for_username, ask_for_password, checkIfUsersExist, store_info, checkIfAdminExist, dropUsers
-import getpass
+from getpass import getpass
 
 class Community_Peer(Thread):
 	_FINISH = True
 
-	def __init__(self,ip_address = '127.0.0.1', port = 5000):
+	def __init__(self,ip_addr = '127.0.0.1', port = 5000, sim=False):
 		self.privkey = SigningKey.generate()
 		self.pubkey = self.privkey.verify_key
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
+		self.sim = sim
+		self.auth = False
 		self.conn, self.cur = connect()
 		self.public_key_list = {}
 		self.public_key_list[(self.ip_addr,self.port)] = self.pubkey #add community public key to public key list
@@ -51,14 +53,16 @@ class Community_Peer(Thread):
 		checkIfUsersExist(self.conn, self.cur)
 		checkIfAdminExist(self.conn, self.cur)
 		
-		while find_hashed_password_by_user(ask_for_username(), getpass.getpass(), self.conn, self.cur, 0) != True:
+		while find_hashed_password_by_user(ask_for_username(), getpass(), self.conn, self.cur, 0) != True:
 			print "Username or Password is Incorrect. Please try again."
 		print "Login Successful"
+		self.auth = True
 		
 		self.lthread = Thread(target=self.listening)
 		self.lthread.start()
-		self.sthread = Thread(target=self.sending)
-		self.sthread.start()
+		if self.sim == False:
+			self.sthread = Thread(target=self.sending)
+			self.sthread.start()
 
 	def listening(self):
 		#listen up to 5 other peers
@@ -74,7 +78,6 @@ class Community_Peer(Thread):
 					print "\nEstablished connection with: ", addr
 				else:
 					#receive the public key from the recently connected peer
-					# messages = self.recvall(socket)
 					messages = self.recvall(socket)
 					recv_buffer = ""
 					recv_buffer = recv_buffer + messages
@@ -130,12 +133,15 @@ class Community_Peer(Thread):
 			if command == "broadcast message":
 				self.broadcastMessage()
 			elif command == 'disconnect':
-				disconnect(self.conn, self.cur)
-				self._FINISH = False
+				self.endPeer()
 			elif command == 'verify':
 				self.getTxn()
 			else:
 				print "Unknown command"
+
+	def endPeer(self):
+		disconnect(self.conn, self.cur)
+		self._FINISH = False
 
 	def recvall(self, socket):
 		# Receives all messages until timeout (workaround for receiving part of message only)
@@ -389,4 +395,4 @@ def main(argv):
 if __name__ == "__main__":
 	ip_addr, port = main(sys.argv[1:])
 
-	node = Community_Peer(ip_addr, port)
+	node = Community_Peer(ip_addr, port, False)

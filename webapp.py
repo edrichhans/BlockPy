@@ -8,6 +8,8 @@ from flask.ext.jsonpify import jsonify
 params = config()
 conn = psycopg2.connect(**params)
 cur = conn.cursor()
+query = 'SELECT * FROM txns;'
+cur.execute(query)
 
 ip_addr = '127.0.0.1'
 port = 3000

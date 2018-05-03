@@ -9,7 +9,7 @@ from uuid import uuid1
 from blockpy_logging import logger
 from chain import readChainSql, readTxnsSql
 from login import ask_for_username, ask_for_password
-import getpass, hashlib
+from getpass import getpass
 
 class Peer(Thread):
 	community_ip = ('127.0.0.1', 5000)
@@ -70,13 +70,19 @@ class Peer(Thread):
 		self.srcv.bind((self.ip_addr, self.port))
 		#add self to list of peers
 		self.peers[(self.ip_addr, self.port)] = self.srcv
+
 		self.getPeers()
 
 		self.lthread = Thread(target=self.listening)
 		self.lthread.start()
 		if self.sim == False:
 			self.sthread = Thread(target=self.sending)
-			self.sthread.start()
+
+		while(self.authenticated==False):
+			if self.waitForAuth == False:
+				self.getAuth()
+
+		self.getPeers()
 
 	def listening(self):
 		#listen up to 5 other peers
@@ -122,7 +128,11 @@ class Peer(Thread):
 										self.miners.append((str(miner[0]),miner[1]))
 									logger.info("Current miners updated",
 										extra={"miners": self.miners})
-									print 'Current miners are set to: ', self.miners
+									# print 'Current miners are set to: ', self.miner
+
+									if self.counter == 1:
+										self.sthread.start()
+										self.counter += 1
 
 								elif category == str(6):	#peer discovery - update list of public keys
 									spec_peer = [] 
@@ -130,7 +140,7 @@ class Peer(Thread):
 									
 									if self.counter < 1: #check if peer already had initial connection
 										for addr in templist: #connect to specific peers not in the local peer list
-											print templist[addr]
+											# print templist[addr]
 											addr1 = eval(addr)
 											if addr1 not in self.peers:
 												spec_peer.append(addr1)
@@ -138,17 +148,16 @@ class Peer(Thread):
 												self.port_equiv[addr1] = addr1
 										self.getPeers(spec_peer, False) #False parameter implies that the peer does not want to reconnect to community peer
 										self.counter += 1
-									print self.public_key_list
 
 								elif category == str(7): 
 									addr1 = socket.getpeername()
 									addr2 = (json.loads(json_message['content'])[1],json.loads(json_message['content'])[2])
 									self.public_key_list[addr1] = VerifyKey(HexEncoder.decode(json.loads(json_message['content'])[0])) #add public key sent by newly connected peer
 									self.port_equiv[addr1] = addr2
-									print "Public Key List"
-									for addr in self.public_key_list:
-										print str(addr) + ':', self.public_key_list[addr].encode(encoder=HexEncoder)
-									print "_______________"
+									# print "Public Key List"
+									# for addr in self.public_key_list:
+									# 	print str(addr) + ':', self.public_key_list[addr].encode(encoder=HexEncoder)
+									# print "_______________"
 
 								elif category == str(8):
 									print 'CAT 8: '
@@ -159,13 +168,13 @@ class Peer(Thread):
 									self.updateTables(json_message)
 
 								elif category == str(11):
-									print "Received Auth response"
+									# print "Received Auth response"
 									self.getAuth(json_message)
 
 								else:
 									raise ValueError('No such category')
 						else:
-							print 'End of message.'
+							print 'End of message.\n'
 
 	def recvall(self, socket):
 		# Receives all messages until timeout (workaround for receiving part of message only)
@@ -282,11 +291,8 @@ class Peer(Thread):
 			extra={'NewTxns': newTxns[len(myTxns):]})
 
 	def sending(self):
-
-		while(self.authenticated==False):
-			if self.waitForAuth == False:
-				self.getAuth()
-		self.getPeers()
+		while len(self.miners) < 0 or self.authenticated == False:
+			None
 
 		while self._FINISH:
 			command = raw_input("Enter command: ")
@@ -295,15 +301,15 @@ class Peer(Thread):
 			elif command == "broadcast message":
 				self.broadcastMessage()
 			elif command == 'disconnect':
-				disconnect(self.conn, self.cur)
-				self._FINISH = False
+				self.disconnect()
 			elif command == 'verify':
 				self.getTxn()
-			elif command == 'default':
-				message = raw_input('content: ')
-				self.sendToMiners("dummy",message)
 			else:
 				print "Unknown command"
+
+	def endPeer(self):
+		disconnect(self.conn, self.cur)
+		self._FINISH = False
 
 	def __del__(self):
 		for conn in self.peers:
@@ -415,10 +421,10 @@ class Peer(Thread):
 		else:
 			self.waitForAuth = True
 			username = ask_for_username()
-			hashed_password = hashlib.sha256(getpass.getpass()).hexdigest()
+			hashed_password = hashMe(getpass())
 			message = (username, hashed_password)
-			self.peers[self.community_ip].send(self.sendMessage(None, json.dumps(message), 5))
-
+			self.peers[self.community_ip].sendall(self.sendMessage(None, json.dumps(message), 5))
+			
 	def getPeersAPI(self):
 		return self.peers.keys()
 
