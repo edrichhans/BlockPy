@@ -16,20 +16,19 @@ from nacl.hash import sha256
 from uuid import uuid1
 from blockpy_logging import logger
 from collections import Counter
-from login import find_hashed_password_by_user, ask_for_username, ask_for_password, checkIfUsersExist, store_info, checkIfAdminExist, dropUsers
-from getpass import getpass
+import json
+from login import find_hashed_password_by_user, ask_for_username, ask_for_password, checkIfUsersExist, store_info, checkIfAdminExist
+import getpass
 
 class Community_Peer(Thread):
-	_FINISH = True
+	_FINISH = False
 
-	def __init__(self,ip_addr = '127.0.0.1', port = 5000, sim=False):
+	def __init__(self,ip_address = '127.0.0.1', port = 5000):
 		self.privkey = SigningKey.generate()
 		self.pubkey = self.privkey.verify_key
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
-		self.sim = sim
-		self.auth = False
 		self.conn, self.cur = connect()
 		self.public_key_list = {}
 		self.public_key_list[(self.ip_addr,self.port)] = self.pubkey #add community public key to public key list
@@ -52,23 +51,30 @@ class Community_Peer(Thread):
 
 		checkIfUsersExist(self.conn, self.cur)
 		checkIfAdminExist(self.conn, self.cur)
-		
-		while find_hashed_password_by_user(ask_for_username(), getpass(), self.conn, self.cur, 0) != True:
+		while find_hashed_password_by_user(ask_for_username(), getpass.getpass(), self.conn, self.cur, 0) != True:
 			print "Username or Password is Incorrect. Please try again."
 		print "Login Successful"
-		self.auth = True
 		
 		self.lthread = Thread(target=self.listening)
+		self.lthread.daemon = True
 		self.lthread.start()
-		if self.sim == False:
-			self.sthread = Thread(target=self.sending)
-			self.sthread.start()
+
+		self.sthread = Thread(target=self.sending)
+		self.sthread.daemon = True
+		self.sthread.start()
+
+		while (1):
+			try:
+				if self._FINISH:
+					break
+			except(KeyboardInterrupt, SystemExit):
+				break
 
 	def listening(self):
 		#listen up to 5 other peers
 		self.srcv.listen(5)
 
-		while self._FINISH:
+		while True:
 			read_sockets,write_sockets,error_sockets = select.select(self.peers.values(),[],[],1)
 			for socket in read_sockets:
 
@@ -78,6 +84,7 @@ class Community_Peer(Thread):
 					print "\nEstablished connection with: ", addr
 				else:
 					#receive the public key from the recently connected peer
+					# messages = self.recvall(socket)
 					messages = self.recvall(socket)
 					recv_buffer = ""
 					recv_buffer = recv_buffer + messages
@@ -127,20 +134,17 @@ class Community_Peer(Thread):
 			print "message sent:False"
 
 	def sending(self):
-		while self._FINISH:
+		while True:
 			command = raw_input("Enter command: ")
 			if command == "broadcast message":
 				self.broadcastMessage()
 			elif command == 'disconnect':
-				self.endPeer()
+				disconnect(self.conn, self.cur)
+				self._FINISH = True
 			elif command == 'verify':
 				self.getTxn()
 			else:
 				print "Unknown command"
-
-	def endPeer(self):
-		disconnect(self.conn, self.cur)
-		self._FINISH = False
 
 	def recvall(self, socket):
 		# Receives all messages until timeout (workaround for receiving part of message only)
@@ -286,24 +290,33 @@ class Community_Peer(Thread):
 		checkIfUsersExist(self.conn, self.cur)
 		store_info(self.conn, self.cur)
 
-	def resetUsers(self):
-		dropUsers(self.conn, self.cur)
-
 	def sending(self):
-		while self._FINISH:
+		while True:
 			command = raw_input("Enter command: ")
-			
-			if command == "send":
+			if command == "get peers":
+				spec_peer = []
+				while True:
+					inpeers = raw_input("Connect to specific peer(s)?: ")
+					if (inpeers == 'q'):
+						break
+					else:
+						try:
+							inpeers = inpeers.split(' ')
+							spec_peer.append((inpeers[0], int(inpeers[1])))
+						except:
+							print "Wrong Input: Incomplete Parameters"
+
+				self.getPeers(spec_peer)
+
+			elif command == "send message":
 				self.sendMessage()
 			elif command == "broadcast message":
 				self.broadcastMessage()
 			elif command == 'disconnect':
 				disconnect(self.conn, self.cur)
-				self._FINISH = False
+				self._FINISH = True
 			elif command == 'create user':
 				self.createUser()
-			elif command == 'reset users':
-				self.resetUsers()
 			else:
 				print "Unknown command"
 
@@ -329,6 +342,9 @@ class Community_Peer(Thread):
 
 		if not category:
 			category = input("category: ")
+
+			if not (category>0 and category<9):
+				raise ValueError('Category input not within bounds')
 
 		if category == 1:
 
@@ -394,4 +410,4 @@ def main(argv):
 if __name__ == "__main__":
 	ip_addr, port = main(sys.argv[1:])
 
-	node = Community_Peer(ip_addr, port, False)
+	node = Community_Peer(ip_addr, port)
