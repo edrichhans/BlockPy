@@ -203,7 +203,6 @@ class Peer(Thread):
 			if socket is None and self.is_miner:
 				self.received_transaction_from[(self.ip_addr, self.port)] = owner
 				self.received_transaction_from_reverse[(self.ip_addr, self.port)] = owner
-				print "Mining for Self..."
 			else:
 				if socket.getpeername() in self.port_equiv:
 					self.received_transaction_from[socket.getpeername()] = owner
@@ -417,10 +416,7 @@ class Peer(Thread):
 		#Handling if self is miner, after sending to other miners, trigger waitForTxn			
 		if self.is_miner:
 			raw_string = self.sendMessage(self.pubkey.encode(HexEncoder),message,1)[:-1] #remove '\0' delimeter
-			print "raw_string_miner" + raw_string
 			json_message = json.loads(raw_string)
-			print "json_message_from_self"
-			print json_message
 			category = str(json_message['_category'])
 			logger.info("Mining message from self",
 				extra={"owner":str((self.ip_addr,self.port)), "category": category, "received_message": raw_input})
