@@ -105,8 +105,9 @@ def verifyTxn(txn, conn, cur):
     if generatedMerkle != blockMerkle:
         logger.warn('Generated Merkle does not match contents of block. Generated Merkle: %s. Expected: %s',
                 generatedMerkle, blockMerkle)
-        raise Exception('Generated Merkle does not match contents of block. Generated Merkle: %s. Expected: %s'%
-                (generatedMerkle, blockMerkle))
+        # raise Exception('Generated Merkle does not match contents of block. Generated Merkle: %s. Expected: %s'%
+        #         (generatedMerkle, blockMerkle))
+        return False
     return True
 
 

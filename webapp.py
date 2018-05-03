@@ -4,6 +4,7 @@ from peer import Peer
 from flask import Flask, request
 from flask_restful import Resource, Api, reqparse
 from flask.ext.jsonpify import jsonify
+from blockpy_logging import logger
 
 params = config()
 conn = psycopg2.connect(**params)
@@ -15,6 +16,8 @@ myself = Peer(ip_addr, port, False)
 
 app = Flask(__name__)
 api = Api(app)
+logger.info('API started',
+    extra={'addr': ip_addr, 'port':port})
 
 parser = reqparse.RequestParser()
 parser.add_argument('txn')
@@ -34,6 +37,7 @@ class Txns(Resource):
             result = {"txns": [dict(zip(keys, json.loads(json.dumps(i, default=myconverter)))) for i in txns]}
         else:
             result = {}
+        logger.info('GET /txns')
         return jsonify(result)
 
 class Txns_id(Resource):
@@ -46,6 +50,8 @@ class Txns_id(Resource):
             result = dict(zip(keys, json.loads(json.dumps(txn, default=myconverter))))
         else:
             result = {}
+        logger.info('GET /txns/<id>',
+            extra={'txn':result})
         return jsonify(result)
 
 class Blocks(Resource):
@@ -58,6 +64,7 @@ class Blocks(Resource):
             result = {"chain": [dict(zip(keys, json.loads(json.dumps(i, default=myconverter)))) for i in blocks]}
         else: 
             result = {}
+        logger.info('GET /blocks')
         return jsonify(result)
 
 class Blocks_id(Resource):
@@ -70,13 +77,18 @@ class Blocks_id(Resource):
             result = dict(zip(keys, json.loads(json.dumps(block, default=myconverter))))
         else:
             result = {}
+        logger.info('GET /blocks/<id>',
+            extra={'block': result})
         return jsonify(result)
 
 class Verify(Resource):
     def post(self):
         args = parser.parse_args()
         txn = args['txn']
-        return myself.getTxn(txn)
+        isVerified = myself.getTxn(txn)
+        logger.info('POST /verify',
+            extra={'txn': isVerified})
+        return isVerified
 
 class Insert(Resource):
     def post(self):
@@ -84,10 +96,13 @@ class Insert(Resource):
         content = args['content']
         content = unicodedata.normalize('NFKD', content).encode('ascii','ignore')
         print content
+        logger.info('POST /insert',
+            extra={'content': content})
         return myself.sendToMiners('dummy', content)
 
 class GetPeers(Resource):
     def get(self):
+        logger.info('GET /peers')
         return jsonify(myself.getPeersAPI())
 
 api.add_resource(Txns, '/txns')

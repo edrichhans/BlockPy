@@ -171,7 +171,7 @@ class Peer(Thread):
 		# Receives all messages until timeout (workaround for receiving part of message only)
 		messages = ''
 		begin = time.time()
-		timeout = 1
+		timeout = 0.1
 		socket.setblocking(0)
 		while 1:
 			if messages and time.time() - begin > timeout:
@@ -186,7 +186,7 @@ class Peer(Thread):
 					begin = time.time()
 				else:
 					#sleep for sometime to indicate a gap
-					time.sleep(0.1)
+					time.sleep(0.05)
 			except Exception as e:
 				pass
 		return messages
