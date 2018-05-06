@@ -349,9 +349,10 @@ def main(argv):
 	#s.connect(("8.8.8.8", 80))
 	ip_addr = "127.0.0.1"#s.getsockname()[0]
 	port = 5000
+	sim = False
 
 	try:
-		opts, args = getopt.getopt(argv, "h:p:", ["hostname=", "port="])
+		opts, args = getopt.getopt(argv, "h:p:s:", ["hostname=", "port=", "sim="])
 	except:
 		print "Requires hostname and port number"
 		sys.exit(2)
@@ -361,10 +362,14 @@ def main(argv):
 			ip_addr = arg
 		elif opt in ("-p", "--port"):
 			port = int(arg)
+		elif opt in ("-sim", "--sim"):
+			if arg == "t":
+				sim = True
+			else:
+				sim = False
 
-	return ip_addr, port
+	return ip_addr, port, sim
 
 if __name__ == "__main__":
-	ip_addr, port = main(sys.argv[1:])
-
+	ip_addr, port, sim = main(sys.argv[1:])
 	node = Community_Peer(ip_addr, port, sim)

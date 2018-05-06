@@ -31,9 +31,6 @@ def mock_getAuth(self,json_message = None):
 	if json_message is not None:
 		self.authenticated = json.loads(json_message['content'])
 		print self.authenticated
-	print "Authenticating....."
-	if self.authenticated:
-		print "Login Successful"
 	else:
 		self.waitForAuth = True
 		username = ask_for_username()
@@ -100,10 +97,6 @@ class UnitTests(unittest.TestCase):
 		self.assertTrue(find_hashed_password_by_user(str(credentials[0]),str(credentials[1]), mockpeer.conn, mockpeer.cur))
 
 		mockpeer.endPeer()
-
-class FunctionalTest(unittest.TestCase):
-    def test(self):
-        pass
-
+		
 if __name__ == "__main__":
     unittest.main()

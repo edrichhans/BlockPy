@@ -26,7 +26,7 @@ def mock_getPeers(self, peer_addr = [], connect_to_community_peer = True):
 	if connect_to_community_peer:
 		try:
 			if(self.authenticated == False):
-				print "Connected: ", self.community_ip[0], str(self.community_ip[1])
+				None
 			else:
 				message = (self.ip_addr,self.port,self.pubkey.encode(encoder=HexEncoder))
 				result[self.community_ip] = self.sendMessage(None, message, 4)
@@ -34,7 +34,6 @@ def mock_getPeers(self, peer_addr = [], connect_to_community_peer = True):
 			print 'Community Server Error: ', e
 	else:
 		for addr in peer_addr:
-			print "Connected: ", addr[0], str(addr[1])
 			message = (self.ip_addr,self.port,self.pubkey.encode(encoder=HexEncoder))
 			result[addr] = self.sendMessage(None,message,7)
 	
@@ -85,7 +84,6 @@ class UnitTests(unittest.TestCase):
 		mockpubkey = mockpeer.pubkey
 		message = mockpeer.getPeers()[mockpeer.community_ip]
 		json_message = message.split('\0')[0]
-		#json_message = json.dumps(json.loads(json_message)['content'])
 		mockpeer.endPeer()
 
 
