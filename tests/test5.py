@@ -10,15 +10,19 @@ def mock_addToChain(newBlock, conn, cur):
 def mock_addToTxns(txn, conn, cur, blockNumber):
 	return None
 
+#change this
 def mock_ask_for_username():
 	return "admin"
 
+#change this
 def mock_getpass():
 	return "pass"
 
+#change this
 def mock_peer_ask_for_username():
 	return "af"
 
+#change this
 def mock_peer_getpass():
 	return "pass"
 
@@ -126,6 +130,7 @@ class UnitTests(unittest.TestCase):
 		community_peer.Community_Peer.waitForSignedBlock = mock_waitForSignedBlock
 		mockcom = community_peer.Community_Peer(sim=True)
 
+		#change this
 		newBlock = [
 			json.dumps({'_owner':mockcom.pubkey.encode(HexEncoder), '_recipient':'dummy recipient', 'content': "dummy content"}),
 			json.dumps({'_owner':mockcom.pubkey.encode(HexEncoder), '_recipient':'dummy recipient', 'content': "dummy content"}),
@@ -133,18 +138,18 @@ class UnitTests(unittest.TestCase):
 			json.dumps({'_owner':mockcom.pubkey.encode(HexEncoder), '_recipient':'dummy recipient', 'content': "dummy content"})
 		]
 
+		#change this
 		mockcom.received_transaction_from[('127.0.0.1',1)] = mockcom.pubkey.encode(HexEncoder)
-
 		message = mockcom.privkey.sign(str(hashMe("dummy message"))).encode('base64')
+		peer = ('127.0.0.1',1)
 
 		json_message={}
 		json_message['content'] = [None, None]
 		json_message['content'][0] = message
 		json_message['content'][1] = hashMe(uuid1().hex)
 
-		peer = ('127.0.0.1',1)
-
 		self.assertEqual(mockcom.waitForSignedBlock(peer, json_message, newBlock),[peer])
+
 		mockcom.endPeer()
 
 	def test_Community_Peer_returntoVerify(self):
@@ -161,6 +166,7 @@ class UnitTests(unittest.TestCase):
 		community_peer.Community_Peer.returnToVerify = mock_returnToVerify
 		mockcom = community_peer.Community_Peer(sim=True)
 
+		#change this
 		mockcom.miners = {('127.0.0.1',1),('127.0.0.1',2),('127.0.0.1',3)}
 		mockcom.port_equiv = {
 			('127.0.0.1',4): ('127.0.0.1',14), 
@@ -168,6 +174,7 @@ class UnitTests(unittest.TestCase):
 			('127.0.0.1',16): ('127.0.0.1',6)
 		}
 
+		#change this
 		json_message = {}
 		json_message['content'] =  json.dumps({'block': {'blockHash': "dummy hash", 'content': "dummy content"},
 									'txnList': "[]",
@@ -208,10 +215,6 @@ class UnitTests(unittest.TestCase):
 		self.assertTrue(mockcom.authenticate(json_message))
 
 		mockcom.endPeer()
-
-class FunctionalTest(unittest.TestCase):
-    def test(self):
-        pass
 
 if __name__ == "__main__":
     unittest.main()
