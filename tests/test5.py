@@ -4,9 +4,11 @@ import os.path
 import shutil
 import sys
 
+#change this
 def mock_addToChain(newBlock, conn, cur):
 	return 2
 
+#change this
 def mock_addToTxns(txn, conn, cur, blockNumber):
 	return None
 
@@ -142,7 +144,6 @@ class UnitTests(unittest.TestCase):
 		mockcom.received_transaction_from[('127.0.0.1',1)] = mockcom.pubkey.encode(HexEncoder)
 		message = mockcom.privkey.sign(str(hashMe("dummy message"))).encode('base64')
 		peer = ('127.0.0.1',1)
-
 		json_message={}
 		json_message['content'] = [None, None]
 		json_message['content'][0] = message
@@ -180,19 +181,28 @@ class UnitTests(unittest.TestCase):
 									'txnList': "[]",
 									'contributing': "[('127.0.0.1',4), ('127.0.0.1',5), ('127.0.0.1',6)]"
 									})
+
 		mockcom.collectBlocks(json_message)
+
+		#change this
 		json_message['content'] =  json.dumps({'block': {'blockHash': "dummy hash", 'content': "dummy content"},
 									'txnList': "[]",
 									'contributing': "[('127.0.0.1',4), ('127.0.0.1',5), ('127.0.0.1',6)]"
 									})
+
 		mockcom.collectBlocks(json_message)
+
+		#change this
 		json_message['content'] =  json.dumps({'block': {'blockHash': "dummy hash 2", 'content': "dummy content 2"},
 									'txnList': "[]",
 									'contributing': "[('127.0.0.1',4), ('127.0.0.1',5), ('127.0.0.1',7)]"
 									})
+
 		block = mockcom.collectBlocks(json_message)
 
 		self.assertEqual(len(block), len(mockcom.miners))
+		
+		#change this
 		self.assertEqual(json.loads(block[0])['content'], "dummy content")
 		self.assertEqual(json.loads(block[0])['blockHash'], "dummy hash")
 
