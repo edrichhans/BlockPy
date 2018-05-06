@@ -4,18 +4,23 @@ import os.path
 import shutil
 import sys
 
+#change this
 def mock_ask_for_username():
 	return "admin"
 
+#change this
 def mock_getpass():
 	return "pass"
 
+#change this
 def mock_ask_for_peer_username():
 	return "af"
 
+#change this
 def mock_peer_getpass():
 	return "pass"
 
+#change this
 def mock_getPeers(self):
 	return None
 
@@ -69,6 +74,7 @@ class UnitTests(unittest.TestCase):
 		peer.Peer.getAuth = mock_getAuth
 		peer.Peer.getPeers = mock_getPeers
 
+		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 		mockpeer.endPeer()
 		self.assertIsInstance(mockpeer, peer.Peer)
@@ -86,6 +92,7 @@ class UnitTests(unittest.TestCase):
 		peer.Peer.getAuth = mock_getAuth
 		peer.Peer.getPeers = mock_getPeers
 
+		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 		mockpeer.authenticated = False
 		content = mockpeer.getAuth(json_message=None)
@@ -97,6 +104,6 @@ class UnitTests(unittest.TestCase):
 		self.assertTrue(find_hashed_password_by_user(str(credentials[0]),str(credentials[1]), mockpeer.conn, mockpeer.cur))
 
 		mockpeer.endPeer()
-		
+
 if __name__ == "__main__":
     unittest.main()

@@ -4,12 +4,15 @@ import os.path
 import shutil
 import sys
 
+#change this
 def mock_ask_for_username():
 	return "admin"
 
+#change this
 def mock_getpass():
 	return "pass"
 
+#change this
 def mock_getpeername():
 	return ('127.0.0.1',8000)
 
@@ -78,6 +81,7 @@ class UnitTests(unittest.TestCase):
 		peer.Peer.getAuth = mock_getAuth
 		peer.Peer.getPeers = mock_getPeers
 
+		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 		mockip = mockpeer.ip_addr
 		mockport = mockpeer.port
@@ -96,7 +100,6 @@ class UnitTests(unittest.TestCase):
 
 		community_peer.Community_Peer.addNewPeer = mock_addNewPeer
 		pubkeys = mockcom.addNewPeer((mockip,mockport),json_message)
-		print pubkeys
 
 		self.assertEqual(pubkeys[str((mockcom.ip_addr,mockcom.port))],mockcom.pubkey.encode(HexEncoder))
 		self.assertEqual(pubkeys[str((mockip,mockport))],mockpubkey.encode(HexEncoder))
@@ -116,9 +119,11 @@ class UnitTests(unittest.TestCase):
 		peer.Peer.getAuth = mock_getAuth
 		peer.Peer.getPeers = mock_getPeers
 
+		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 		message = mockpeer.getPeers()[mockpeer.community_ip]
 
+		#change this
 		correctpacket = {"_category":"4",
 			"content":[mockpeer.ip_addr,mockpeer.port,mockpeer.pubkey.encode(HexEncoder)],
 			"_owner": mockpeer.pubkey.encode(HexEncoder),
@@ -131,9 +136,11 @@ class UnitTests(unittest.TestCase):
 		self.assertEqual(message["_owner"],mockpeer.pubkey.encode(HexEncoder))
 		self.assertEqual(message["_recipient"],None)
 
+		#change this
 		peer_addr=[('127.0.0.1','1'),('127.0.0.1','2'),('127.0.0.1','3'),('127.0.0.1','4')]
 		message = mockpeer.getPeers(peer_addr,False)
 
+		#change this
 		correctpacket = {"_category":"7",
 			"content":[mockpeer.ip_addr,mockpeer.port,mockpeer.pubkey.encode(HexEncoder)],
 			"_owner": mockpeer.pubkey.encode(HexEncoder),
@@ -148,10 +155,6 @@ class UnitTests(unittest.TestCase):
 			self.assertEqual(mockmessage["_recipient"],correctpacket['_recipient'])
 
 		mockpeer.endPeer()
-
-class FunctionalTest(unittest.TestCase):
-    def test(self):
-        pass
 
 if __name__ == "__main__":
     unittest.main()

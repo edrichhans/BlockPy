@@ -59,7 +59,7 @@ def mock_sendToMiners(self, recpubkey=None, message=None):
 def mock_waitForTxn(self, json_message, message, socket = None):
 	from main import create
 	import json
-	
+
 	try:
 		owner = json_message['_owner']
 		if socket is None and self.is_miner:
@@ -119,8 +119,10 @@ class UnitTests(unittest.TestCase):
 		peer.Peer.getAuth = mock_getAuth
 		peer.Peer.getPeers = mock_None
 
+		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 
+		#change this
 		content = "Hi"
 		recpubkey = "dummy"
 		correctpacket = {
@@ -149,6 +151,7 @@ class UnitTests(unittest.TestCase):
 		peer.Peer.getPeers = mock_None
 		peer.Peer.sendToMiners = mock_sendToMiners
 
+		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 		mockpeer.miners = [('127.0.0.1',1),('127.0.0.1',2),('127.0.0.1',3),('127.0.0.1',4)]
 		mockpeer.port_equiv = {
@@ -158,9 +161,11 @@ class UnitTests(unittest.TestCase):
 				('127.0.0.1',4):('127.0.0.1',14)
 			}
 		mockpeer.is_miner = True
-
 		sentmessages = mockpeer.sendToMiners(recpubkey="samplepubkey",message="sample message")
+		
 		self.assertEqual(len(sentmessages),5)
+
+		#change this
 		for address in sentmessages:
 			self.assertIn(address,[
 					(mockpeer.ip_addr,mockpeer.port),
@@ -169,6 +174,7 @@ class UnitTests(unittest.TestCase):
 					('127.0.0.1',3),
 					('127.0.0.1',4)
 				])
+
 		mockpeer.endPeer()
 
 	def test_Peer_waitForTxn(self):
@@ -181,10 +187,12 @@ class UnitTests(unittest.TestCase):
 		peer.Peer.getPeers = mock_None
 		peer.Peer.waitForTxn = mock_waitForTxn
 
+		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 		mockpeer.max_txns = 3
 		mockpeer.is_miner = True
 
+		#change this
 		message = {
 				"_owner": mockpeer.pubkey.encode(HexEncoder),
 				"_recipient": "dummy",
@@ -193,6 +201,7 @@ class UnitTests(unittest.TestCase):
 			}
 		json_message = json.dumps(message)
 
+		#change this
 		mockpeer.port_equiv = {('127.0.0.1',1): ('127.0.0.1',11), ('127.0.0.1',12): ('127.0.0.1',2)}
 		
 		mockpeer.waitForTxn(json.loads(json_message),json_message,None)
@@ -200,17 +209,20 @@ class UnitTests(unittest.TestCase):
 		self.assertEqual(mockpeer.received_transaction_from[(mockpeer.ip_addr, mockpeer.port)], message["_owner"])
 		self.assertEqual(mockpeer.received_transaction_from_reverse[(mockpeer.ip_addr, mockpeer.port)], message["_owner"])
 		
+		#change this
 		socket = ("127.0.0.1",1)
 		mockpeer.waitForTxn(json.loads(json_message),json_message,socket)
 		self.assertEqual(len(mockpeer.messages),2)
 		self.assertEqual(mockpeer.received_transaction_from[socket], message["_owner"])
 		self.assertEqual(mockpeer.received_transaction_from_reverse[mockpeer.port_equiv[socket]], message["_owner"])
 		
+		#change this
 		socket = ("127.0.0.1",2)
 		newmessage = mockpeer.waitForTxn(json.loads(json_message),json_message,socket)
 		newmessage = newmessage.split('\0')
 		json_message = json.loads(newmessage[0])
 		content = json.loads(json_message['content'])
+
 		self.assertEqual(len(mockpeer.messages),3)
 		self.assertEqual(len(eval(content['contributing'])),3)
 		self.assertEqual(len(eval(content['txnList'])),3)
@@ -231,9 +243,11 @@ class UnitTests(unittest.TestCase):
 		peer.Peer.getPeers = mock_None
 		peer.Peer.verifyBlock = mock_verifyBlock
 
+		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 		socket = ('127.0.0.1',1)
 
+		#change this
 		packet = {
 			'content':json.dumps("dummy message")
 		}
@@ -254,6 +268,7 @@ class UnitTests(unittest.TestCase):
 		peer.Peer.getAuth = mock_getAuth
 		peer.Peer.getPeers = mock_None
 
+		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 		chain = readChainSql(mockpeer.conn, mockpeer.cur)
 		txns = readTxnsSql(mockpeer.conn, mockpeer.cur)
@@ -271,16 +286,13 @@ class UnitTests(unittest.TestCase):
 		peer.Peer.getAuth = mock_getAuth
 		peer.Peer.getPeers = mock_None
 
+		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 
 		self.assertTrue(mockpeer.getTxn(1)[1])
 		self.assertFalse(mockpeer.getTxn(-1)[-1])
 
 		mockpeer.endPeer()
-
-class FunctionalTest(unittest.TestCase):
-    def test(self):
-        pass
 
 if __name__ == "__main__":
     unittest.main()
