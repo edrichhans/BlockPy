@@ -71,6 +71,7 @@ class Peer(Thread):
 		#add self to list of peers
 		self.peers[(self.ip_addr, self.port)] = self.srcv
 		self.is_miner = False
+		self.ack = False
 		self.getPeers()
 
 		self.lthread = Thread(target=self.listening)
@@ -167,6 +168,10 @@ class Peer(Thread):
 									print "Received Auth response"
 									self.getAuth(json_message)
 
+								elif category == str(12):
+									print 'Received ACK'
+									self.ack = True
+
 								else:
 									raise ValueError('No such category')
 						else:
@@ -199,31 +204,43 @@ class Peer(Thread):
 	def waitForTxn(self, json_message, message, socket = None):
 		try:
 			owner = json_message['_owner']
+			peer = None
 			#if self is miner and not in miner list, simpler solution
 			if socket is None and self.is_miner:
 				self.received_transaction_from[(self.ip_addr, self.port)] = owner
 				self.received_transaction_from_reverse[(self.ip_addr, self.port)] = owner
 			else:
-				if socket.getpeername() in self.port_equiv:
-					self.received_transaction_from[socket.getpeername()] = owner
-					self.received_transaction_from_reverse[self.port_equiv[socket.getpeername()]] = owner
-				elif socket.getpeername() in self.port_equiv.values():
+				peer = socket.getpeername()
+				if peer in self.port_equiv:
+					self.received_transaction_from[peer] = owner
+					self.received_transaction_from_reverse[self.port_equiv[peer]] = owner
+				elif peer in self.port_equiv.values():
 					for key,value in self.port_equiv.items():
-						if socket.getpeername() == value:
+						if peer == value:
 							self.received_transaction_from_reverse[value] = owner
 							self.received_transaction_from[key] = owner
 				else:
 					logger.error('self.port_equiv not set properly.')
 					print 'self.port_equiv not set properly.'
 
-			self.messages.append(message)
-			if len(self.messages) >= self.max_txns:
-				# create new block
-				self.newBlock, self.txnList = create(self.messages, self.conn, self.cur)
-				packet = {'block': self.newBlock, 'txnList': str(self.txnList), 'contributing': str(self.received_transaction_from_reverse)}
-				self.peers[self.community_ip].send(self.sendMessage(None,json.dumps(packet), 9))
-				logger.info('Block sent to community peer for collating')
-				print 'Block sent to community peer for collating'
+			if len(self.messages) < self.max_txns:
+				self.messages.append(message)
+				if peer:
+					self.peers[peer].send(self.sendMessage(None, 'ACK', 12))
+					logger.info('ACK sent to %s', str(peer))
+					print 'ACK sent to:', peer
+				else:
+					self.ack = True
+					logger.info('ACK sent to self')
+					print 'ACK sent to self'
+				if len(self.messages) >= self.max_txns:
+					# create new block
+					self.newBlock, self.txnList = create(self.messages, self.conn, self.cur)
+					packet = {'block': self.newBlock, 'txnList': str(self.txnList), 'contributing': str(self.received_transaction_from_reverse)}
+					self.peers[self.community_ip].send(self.sendMessage(None,json.dumps(packet), 9))
+					logger.info('Block sent to community peer for collating')
+					print 'Block sent to community peer for collating'
+
 		except Exception as e:
 			logger.error("Error sending file", exc_info=True)
 			print "SEND ERROR: ", e
@@ -403,27 +420,40 @@ class Peer(Thread):
 			return {txn: False}
 
 	def sendToMiners(self, recpubkey=None, message=None):
-		raw_string = self.sendMessage(recpubkey,message,1)
-		for miner in self.miners:
-			if miner in self.port_equiv.values():
-				for key,value in self.port_equiv.items():
-					if miner == value:
-						if not self.peers[key].send(raw_string):
-							return False
-			else:
-				if not self.peers[miner].send(raw_string):
-					return False
-		#Handling if self is miner, after sending to other miners, trigger waitForTxn			
-		if self.is_miner:
-			raw_string = self.sendMessage(self.pubkey.encode(HexEncoder),message,1)[:-1] #remove '\0' delimeter
-			json_message = json.loads(raw_string)
-			category = str(json_message['_category'])
-			logger.info("Mining message from self",
-				extra={"owner":str((self.ip_addr,self.port)), "category": category, "received_message": raw_input})
-			if category == str(1):	#waiting for transaction
-				# json_message['content'] = self.public_key_list[socket.getpeername()].verify(json_message['content'].decode('base64'))
-				self.waitForTxn(json_message, raw_string)
-		
+		begin = 0
+		# set ACK timeout to 3 seconds before resending
+		timeout = 3
+		while not self.ack:
+			begin = time.time()
+			raw_string = self.sendMessage(recpubkey,message,1)
+			for miner in self.miners:
+				if miner in self.port_equiv.values():
+					for key,value in self.port_equiv.items():
+						if miner == value:
+							if not self.peers[key].send(raw_string):
+								return False
+				else:
+					if not self.peers[miner].send(raw_string):
+						return False
+			#Handling if self is miner, after sending to other miners, trigger waitForTxn			
+			if self.is_miner:
+				raw_string = self.sendMessage(self.pubkey.encode(HexEncoder),message,1)[:-1] #remove '\0' delimeter
+				json_message = json.loads(raw_string)
+				category = str(json_message['_category'])
+				logger.info("Mining message from self",
+					extra={"owner":str((self.ip_addr,self.port)), "category": category, "received_message": raw_input})
+				if category == str(1):	#waiting for transaction
+					# json_message['content'] = self.public_key_list[socket.getpeername()].verify(json_message['content'].decode('base64'))
+					self.waitForTxn(json_message, raw_string)
+			while time.time() - begin < timeout:
+				if self.ack:
+					break
+				time.sleep(0.1)
+			logger.info('ACK timeout. Resending transaction')
+			print 'ACK timeout. Resending transaction'
+
+		logger.info('ACK received')
+		self.ack = False
 		return True
 
 	def getAuth(self,json_message = None): 
