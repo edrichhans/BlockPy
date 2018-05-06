@@ -35,7 +35,6 @@ def mock_getPeers(self, peer_addr = [], connect_to_community_peer = True):
 
 def mock_sendToMiners(self, recpubkey=None, message=None):
 	import json
-	from blockpy_logging import logger
 
 	messages = {}
 	raw_string = self.sendMessage(recpubkey,message,1)
@@ -51,7 +50,7 @@ def mock_sendToMiners(self, recpubkey=None, message=None):
 		raw_string = self.sendMessage(recpubkey,message,1)[:-1]
 		json_message = json.loads(raw_string)
 		category = str(json_message['_category'])
-		if category == str(1):	#waiting for transaction
+		if category == str(1):
 			messages[(self.ip_addr,self.port)] = raw_string
 
 	return messages
@@ -103,7 +102,6 @@ def mock_verifyBlock(self, peer, message):
 	
 def json_serial( obj):
 	import datetime
-	# Serializes datetime object to valid JSON format
 	if isinstance(obj, (datetime.datetime, datetime.date)):
 		return obj.isoformat()
 	raise TypeError("Type %s is not serializable" % type(obj))
@@ -160,7 +158,10 @@ class UnitTests(unittest.TestCase):
 				('127.0.0.1',3):('127.0.0.1',13),
 				('127.0.0.1',4):('127.0.0.1',14)
 			}
+
 		mockpeer.is_miner = True
+
+		#change this
 		sentmessages = mockpeer.sendToMiners(recpubkey="samplepubkey",message="sample message")
 		
 		self.assertEqual(len(sentmessages),5)
@@ -190,6 +191,7 @@ class UnitTests(unittest.TestCase):
 		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 		mockpeer.max_txns = 3
+
 		mockpeer.is_miner = True
 
 		#change this
@@ -199,6 +201,7 @@ class UnitTests(unittest.TestCase):
 				"_category": "1",
 				"content": "dummy message"
 			}
+
 		json_message = json.dumps(message)
 
 		#change this
@@ -211,6 +214,7 @@ class UnitTests(unittest.TestCase):
 		
 		#change this
 		socket = ("127.0.0.1",1)
+
 		mockpeer.waitForTxn(json.loads(json_message),json_message,socket)
 		self.assertEqual(len(mockpeer.messages),2)
 		self.assertEqual(mockpeer.received_transaction_from[socket], message["_owner"])
@@ -218,16 +222,22 @@ class UnitTests(unittest.TestCase):
 		
 		#change this
 		socket = ("127.0.0.1",2)
+
 		newmessage = mockpeer.waitForTxn(json.loads(json_message),json_message,socket)
 		newmessage = newmessage.split('\0')
 		json_message = json.loads(newmessage[0])
 		content = json.loads(json_message['content'])
 
-		self.assertEqual(len(mockpeer.messages),3)
-		self.assertEqual(len(eval(content['contributing'])),3)
-		self.assertEqual(len(eval(content['txnList'])),3)
-		self.assertEqual(content['block']['contents']['txnCount'],3)
-		self.assertEqual(mockpeer.received_transaction_from[("127.0.0.1",12)], message["_owner"])
+		#change this
+		self.assertEqual(len(mockpeer.messages),len(mockpeer.port_equiv)+1)
+		self.assertEqual(len(eval(content['contributing'])),len(mockpeer.port_equiv)+1)
+		self.assertEqual(len(eval(content['txnList'])),len(mockpeer.port_equiv)+1)
+		self.assertEqual(content['block']['contents']['txnCount'],len(mockpeer.port_equiv)+1)
+
+		#change this
+		reversesocket = ("127.0.0.1",12)
+
+		self.assertEqual(mockpeer.received_transaction_from[reversesocket], message["_owner"])
 		self.assertEqual(mockpeer.received_transaction_from_reverse[socket], message["_owner"])
 	
 		mockpeer.endPeer()		
@@ -246,11 +256,10 @@ class UnitTests(unittest.TestCase):
 		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
 		socket = ('127.0.0.1',1)
-
-		#change this
 		packet = {
 			'content':json.dumps("dummy message")
 		}
+
 		block = mockpeer.verifyBlock(socket,json.dumps(packet))
 
 		self.assertEqual(block[socket][0], mockpeer.privkey.sign(str(hashMe(json.loads(packet['content'])))).encode('base64'))
@@ -270,6 +279,7 @@ class UnitTests(unittest.TestCase):
 
 		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
+		
 		chain = readChainSql(mockpeer.conn, mockpeer.cur)
 		txns = readTxnsSql(mockpeer.conn, mockpeer.cur)
 		json_message = mockpeer.sendMessage(None,json.dumps({'chain': chain, 'txns': txns}, default=json_serial), 10)

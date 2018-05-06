@@ -4,7 +4,7 @@ import os.path
 import shutil
 
 #python -m unittest discover -s tests
-#
+
 class UnitTests(unittest.TestCase):
 	def test_import_package(self):
 		import hashMe

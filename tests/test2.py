@@ -20,7 +20,6 @@ def mock_ask_for_peer_username():
 def mock_peer_getpass():
 	return "pass"
 
-#change this
 def mock_getPeers(self):
 	return None
 
