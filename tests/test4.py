@@ -20,7 +20,7 @@ def mock_getPeers(self, peer_addr = [], connect_to_community_peer = True):
 	if connect_to_community_peer:
 		try:
 			if(self.authenticated == False):
-				print "Connected: ", self.community_ip[0], str(self.community_ip[1])
+				None
 			else:
 				message = (self.ip_addr,self.port,self.pubkey.encode(encoder=HexEncoder))
 				result[self.community_ip] = self.sendMessage(None, message, 4)
@@ -28,7 +28,6 @@ def mock_getPeers(self, peer_addr = [], connect_to_community_peer = True):
 			print 'Community Server Error: ', e
 	else:
 		for addr in peer_addr:
-			print "Connected: ", addr[0], str(addr[1])
 			message = (self.ip_addr,self.port,self.pubkey.encode(encoder=HexEncoder))
 			result[addr] = self.sendMessage(None,message,7)
 	
@@ -40,7 +39,6 @@ def mock_sendToMiners(self, recpubkey=None, message=None):
 
 	messages = {}
 	raw_string = self.sendMessage(recpubkey,message,1)
-	print self.port_equiv
 	for miner in self.miners:
 		if miner in self.port_equiv.values():
 			for key,value in self.port_equiv.items():
@@ -50,11 +48,9 @@ def mock_sendToMiners(self, recpubkey=None, message=None):
 			messages[miner] = raw_string
 	
 	if self.is_miner:
-		raw_string = self.sendMessage(recpubkey,message,1)[:-1] #remove '\0' delimeter
+		raw_string = self.sendMessage(recpubkey,message,1)[:-1]
 		json_message = json.loads(raw_string)
 		category = str(json_message['_category'])
-		logger.info("Mining message from self",
-			extra={"owner":str((self.ip_addr,self.port)), "category": category, "received_message": raw_string})
 		if category == str(1):	#waiting for transaction
 			messages[(self.ip_addr,self.port)] = raw_string
 
@@ -63,6 +59,7 @@ def mock_sendToMiners(self, recpubkey=None, message=None):
 def mock_waitForTxn(self, json_message, message, socket = None):
 	from main import create
 	import json
+	
 	try:
 		owner = json_message['_owner']
 		if socket is None and self.is_miner:
