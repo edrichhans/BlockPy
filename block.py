@@ -14,7 +14,6 @@ def makeBlock(txns,chain):
     parentHash  = parentBlock[u'blockHash']
     blockNumber = parentBlock[u'contents'][u'blockNumber'] + 1
     txnCount    = len(txns)
-    blockTxn    = merkleRoot
     timestamp   = str(datetime.now())
     blockContents = {
         u'blockNumber':blockNumber,

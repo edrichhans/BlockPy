@@ -243,10 +243,8 @@ class Peer(Thread):
 		peer = socket.getpeername()
 		# get block
 		block = json.loads(json.loads(message)['content'])
-		# generate fingerprint
-		fingerprint = sha256
 		# generate signature
-		signature = self.privkey.sign(fingerprint(json.dumps(block)))
+		signature = self.privkey.sign(hashMe(json.dumps(block)))
 		# send message
 		self.peers[peer].send(self.sendMessage(None, (signature.encode('base64'), nonce), 3))
 		logger.info("Signed block sent",
@@ -367,8 +365,7 @@ class Peer(Thread):
 			if not recpubkey:
 				recpubkey = raw_input("public key of receiver: ")
 
-			hasher = sha256
-			message = self.privkey.sign(hasher(message)).encode('base64')
+			message = self.privkey.sign(str(hashMe(message))).encode('base64')
 			
 		packet = {u'_owner': self.pubkey.encode(encoder=HexEncoder), u'_recipient': recpubkey, u'_category': str(category), u'content':message}
 		raw_string = json.dumps(packet)
