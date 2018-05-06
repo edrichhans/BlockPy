@@ -52,13 +52,13 @@ def disconnect(conn, cur):
             print 'Database connection closed.'
             logger.info("Database connection closed")
 
-def create(message, conn, cur):
+def create(messages, conn, cur):
     print '\nReading contents of current chain...\n'
     #commented out for simulation purposes
     chain = readChainSql(conn, cur)
     # viewChainSql(chain)
     txnList = []
-    for txn in message:
+    for txn in messages:
         try:
             txn = json.loads(txn)
         except Exception as error:
@@ -78,14 +78,18 @@ def create(message, conn, cur):
 
 def addToChain(newBlock, conn, cur):
     print 'Writing to Blockchain Table...\n'
-    blockNumber = writeChainSql(newBlock, conn, cur)
-    logger.info("blocks table updated")
+    if newBlock:
+        blockNumber = writeChainSql(newBlock, conn, cur)
+        logger.info("blocks table updated")
+    else:
+        blockNumber = -1
     return blockNumber
 
 def addToTxns(txns, conn, cur, blockNumber, txnNumber=None, timestamp=None):
     print 'Writing to Txns Table...\n'
-    writeTxnsSql(txns, conn, cur, blockNumber, txnNumber, timestamp)
-    logger.info("txns table updated")
+    if txns and blockNumber:
+        writeTxnsSql(txns, conn, cur, blockNumber, txnNumber, timestamp)
+        logger.info("txns table updated")
 
 def verifyTxn(txn, conn, cur):
     getTxnsSql = '''SELECT txn_content FROM txns WHERE

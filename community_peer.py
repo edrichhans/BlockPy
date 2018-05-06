@@ -22,12 +22,13 @@ import getpass
 class Community_Peer(Thread):
 	_FINISH = True
 
-	def __init__(self,ip_address = '127.0.0.1', port = 5000):
+	def __init__(self,ip_addr = '127.0.0.1', port = 5000, sim=False):
 		self.privkey = SigningKey.generate()
 		self.pubkey = self.privkey.verify_key
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
+		self.sim = sim
 		self.conn, self.cur = connect()
 		self.public_key_list = {}
 		self.public_key_list[(self.ip_addr,self.port)] = self.pubkey #add community public key to public key list
@@ -57,8 +58,9 @@ class Community_Peer(Thread):
 		
 		self.lthread = Thread(target=self.listening)
 		self.lthread.start()
-		self.sthread = Thread(target=self.sending)
-		self.sthread.start()
+		if self.sim == False:
+			self.sthread = Thread(target=self.sending)
+			self.sthread.start()
 
 	def listening(self):
 		#listen up to 5 other peers
@@ -134,6 +136,10 @@ class Community_Peer(Thread):
 			else:
 				print "Unknown command"
 
+	def endPeer(self):
+		disconnect(self.conn, self.cur)
+		self._FINISH = False
+
 	def recvall(self, socket):
 		# Receives all messages until timeout (workaround for receiving part of message only)
 		messages = ''
@@ -167,15 +173,15 @@ class Community_Peer(Thread):
 	def waitForSignedBlock(self, socket, json_message):
 		# proof here
 		peer = socket.getpeername()
-		if peer in self.port_equiv.keys():
+		if peer in self.port_equiv:
 			peer = self.port_equiv[peer]
 		if peer in self.received_transaction_from:
 			verifier = VerifyKey(HexEncoder.decode(self.received_transaction_from[peer]))
 			# self.newBlock = json.loads(json.dumps(self.newBlock))
 			if verifier.verify(json_message['content'][0].decode('base64')):
 				# parse values
-				raw_pubkey = verifier.encode(encoder=HexEncoder)
-				p = ''.join([str(ord(c)) for c in raw_pubkey.decode('base64')])
+				raw_pubkey = verifier.encode(HexEncoder)
+				p = ''.join([str(ord(c)) for c in raw_pubkey])
 				nonce = json_message['content'][1]
 				# get the difference of
 				self.potential_miners[peer] = abs(int(hashMe(self.newBlock['blockHash']+nonce), 36) - int(p[:100]))
@@ -303,16 +309,6 @@ class Community_Peer(Thread):
 		for conn in self.peers:
 			self.peers[conn].close()
 
-	def getPeers(self, peer_addr = []):
-		try:
-			self.peers[self.community_ip] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			self.peers[self.community_ip].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-			self.peers[self.community_ip].bind((self.ip_addr, self.port))
-			self.peers[self.community_ip].connect(self.community_ip)
-			print "Connected: ", self.community_ip[0], self.community_ip[1]
-		except:
-			print "Community server down"
-
 	def sendMessage(self, recpubkey=None, message=None, category=None):
 		 #replace with actual public key
 		
@@ -327,8 +323,7 @@ class Community_Peer(Thread):
 			if not recpubkey:
 				recpubkey = raw_input("public key of receiver: ")
 
-			hasher = sha256
-			message = self.privkey.sign(hasher(message)).encode('base64')
+			message = self.privkey.sign(str(hashMe(message))).encode('base64')
 
 		packet = {u'_owner': self.pubkey.encode(HexEncoder), u'_recipient': recpubkey, u'_category': str(category), u'content':message}
 		raw_string = json.dumps(packet)
@@ -343,20 +338,6 @@ class Community_Peer(Thread):
 					self.peers[addr].send(raw_string)
 				except Exception as e:
 					print e
-
-	def returnPeerList(self, ip, port):
-		ssnd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		ssnd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		ssnd.bind((self.ip_addr, self.sport))
-
-		try:
-			ssnd.connect((ip, port))
-			ssnd.sendall(str(self.addrs))
-			ssnd.close()
-		except Exception as e:
-			ssnd.close()
-			print e
-
 
 #main code to run when running peer.py
 #include in your input the hostname and the port you want your peer to run in
@@ -386,4 +367,4 @@ def main(argv):
 if __name__ == "__main__":
 	ip_addr, port = main(sys.argv[1:])
 
-	node = Community_Peer(ip_addr, port)
+	node = Community_Peer(ip_addr, port, sim)
