@@ -78,7 +78,7 @@ class Community_Peer(Thread):
 					#receive the public key from the recently connected peer
 					# messages = self.recvall(socket)
 					messages = self.recvall(socket)
-					recv_buffer_split = str(message).split('\0')
+					recv_buffer_split = str(messages).split('\0')
 					for message in recv_buffer_split[:-1]:
 						try:
 							json_message = json.loads(message)
