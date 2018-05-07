@@ -8,3 +8,4 @@ venv/
 keys/
 database.ini
 logs/
+./test*.py
