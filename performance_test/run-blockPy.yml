@@ -1,0 +1,110 @@
+---
+- name: clone and install dependencies for BlockPy
+  hosts: all
+  remote_user: test_user
+  become_user: root
+  become: yes
+
+  vars:
+    ansible_become_pass: 
+
+  tasks:
+  #Install Git
+  - name: Installing git
+    apt:
+      name: git
+      state: present
+    # become: yes
+
+  #Clone BlockPy
+  - name: Clone github repo
+    git:
+      repo: https://github.com/edrichhans/BlockPy.git
+      dest: /home/BlockPy
+      clone: yes
+      update: yes
+      force: yes
+    become_user: root
+    become: yes
+
+  #Install Postgres and tools
+
+  - name: Install postgres
+    apt: 
+      name: postgresql
+      state: present
+  - name: Install python-psycopg2
+    apt:
+      name: python-psycopg2
+      state: present
+  - name: Install libpq-dev
+    apt:
+      name: libpq-dev
+      state: present
+
+  #Install python dependencies
+
+  - name: Install build-essential
+    apt:
+      name: build-essential
+      state: present
+
+  - name: Install libssl-dev
+    apt:
+      name: libssl-dev
+      state: present
+
+  - name: Install libffi-dev
+    apt:
+      name: libffi-dev
+      state: present
+
+  - name: Install python-dev
+    apt:
+      name: python-dev
+      state: present
+
+  - name: Install python-setuptools
+    apt:
+      name: python-setuptools
+      state: present
+
+  - name: Upgrade pip
+    apt:
+      name: python3-pip
+      state: present
+
+  - name: Ensure the PostgreSQL service is running
+    service: name=postgresql state=started enabled=yes
+
+  - name: Create postgres database
+    become: true
+    become_user: postgres
+    postgresql_db:
+      name: blockpy
+      state: present
+
+  - name: Create postgres user
+    postgresql_user: name=postgres password=toor
+    become: true
+    become_user: postgres
+
+  - name: Install python modules for BlockPy
+    shell: echo yes | bash /home/BlockPy/setup/setup.sh
+    become_user: root
+    become: yes
+
+  
+  #Configure Postgres SQL Remotely using Ansible
+  
+  # Run performace script here, need to figure out how to split the script per sending.
+  # Cause once running, we can really stop the script - peer.py cannot handle reopening
+  # per instance of community_peer.py. Interlocking within the test scripts must happen.
+  # - name: Run performance script.
+    # script: /srv/blockDeploy/BlockPy/peer_sim.py
+    #use wait_for?
+  
+  
+
+  
+  
