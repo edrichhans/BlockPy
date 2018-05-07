@@ -330,6 +330,10 @@ class Peer(Thread):
 			else:
 				print "Unknown command"
 
+	def endPeer(self):
+		disconnect(self.conn, self.cur)
+		self._FINISH = False
+
 	def __del__(self):
 		for conn in self.peers:
 			self.peers[conn].close()

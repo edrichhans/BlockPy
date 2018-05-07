@@ -83,11 +83,13 @@ class UnitTests(unittest.TestCase):
 
 		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
+		mockpeer.getAuth()
 
 		mockip = mockpeer.ip_addr
 		mockport = mockpeer.port
 		mockpubkey = mockpeer.pubkey
 		message = mockpeer.getPeers()[mockpeer.community_ip]
+		print "message",message
 		json_message = message.split('\0')[0]
 
 		mockpeer.endPeer()
@@ -123,6 +125,7 @@ class UnitTests(unittest.TestCase):
 
 		#change this
 		mockpeer = peer.Peer('127.0.0.1',8000,True)
+		mockpeer.getAuth()
 
 		message = mockpeer.getPeers()[mockpeer.community_ip]
 

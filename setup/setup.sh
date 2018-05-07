@@ -5,6 +5,7 @@ virtualenv --version
 virtualenv ../venv
 source ../venv/bin/activate
 sudo pip install -r requirements-pip.txt
+sudo -u postgres psql postgres -t "SELECT 1 FROM blockpy WHERE datname='blockpy'" | grep -q 1 || sudo -u postges psql postgres -c "CREATE DATABASE blockpy"
 cat > ../database.ini <<- "EOF"
 [postgresql]
 host=localhost
