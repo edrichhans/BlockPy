@@ -3,7 +3,7 @@ virtualenv --version
 sudo -H virtualenv ../venv
 source ../venv/bin/activate
 sudo -H pip install -r /home/BlockPy/setup/requirements-pip.txt
-sudo bash -c 'cat > ../database.ini <<- "EOF"
+sudo bash -c 'cat > /home/BlockPy/database.ini <<- "EOF"
 [postgresql]
 host=localhost
 database=blockpy
