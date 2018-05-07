@@ -22,7 +22,7 @@ import getpass
 class Community_Peer(Thread):
 	_FINISH = True
 
-	def __init__(self,ip_addr = '192.168.145.75', port = 5000, sim=False):
+	def __init__(self,ip_addr = '127.0.0.1', port = 5000, sim=False):
 		self.privkey = SigningKey.generate()
 		self.pubkey = self.privkey.verify_key
 		self.peers = {}
@@ -347,7 +347,7 @@ def main(argv):
 	#this is the default ip and port
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
-	ip_addr = "192.168.145.75"#s.getsockname()[0]
+	ip_addr = "127.0.0.1"#s.getsockname()[0]
 	port = 5000
 	sim = False
 
