@@ -1,0 +1,13 @@
+web:
+    build: .
+    links:
+        - 'db'
+    ports:
+        - '8000:8000'
+    environment:
+        - 'DATABASE_HOST=db'
+        - 'DATABASE_NAME=blockpy'
+        - 'DATABASE_USER=postgres'
+        - 'DATABASE_PASSWORD=toor'
+db:
+    image: postgres:latest
