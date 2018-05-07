@@ -2,7 +2,7 @@ sudo -H pip install virtualenv
 virtualenv --version
 sudo -H virtualenv ../venv
 source ../venv/bin/activate
-sudo -H pip install -r requirements-pip.txt
+sudo -H pip install -r /home/BlockPy/setup/requirements-pip.txt
 sudo bash -c 'cat > ../database.ini <<- "EOF"
 [postgresql]
 host=localhost
