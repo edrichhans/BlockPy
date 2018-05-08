@@ -280,9 +280,9 @@ class Peer(Thread):
 				# decode datetime to datatime.datetime() object
 				newChain[i]['contents']['timestamp'] = datetime.datetime.strptime(newTime, '%Y-%m-%dT%H:%M:%S.%f')
 			if myChain[i] != newChain[i]:
-				logger.warn('Block #%s is different from broadcasted chain', i,
+				logger.warn('Block #%s is different from broadcasted chain', i+1,
 					extra={'current': myChain[i], 'new': newChain[i]})
-				updateChain(i, newChain[i], self.conn, self.cur)
+				updateChain(i+1, newChain[i], self.conn, self.cur)
 		for i in range(len(myChain), len(newChain)):
 			# Add new entries
 			blockNumber = addToChain(newChain[i], self.conn, self.cur)
@@ -297,10 +297,10 @@ class Peer(Thread):
 				# decode datetime to datatime.datetime() object
 				newTxns[i]['timestamp'] = datetime.datetime.strptime(newTime, '%Y-%m-%dT%H:%M:%S.%f')
 			if myTxns[i] != newTxns[i]:
-				logger.warn('Transaction #%s is different from broadcasted txns', i,
+				logger.warn('Transaction #%s is different from broadcasted txns', i+1,
 					extra={'current': myTxns[i], 'new': newTxns[i]})
 				newTxn = newTxns[i]
-				updateTxns(newTxn['content'], self.conn, self.cur, newTxn['blockNumber'], i, \
+				updateTxns(newTxn['content'], self.conn, self.cur, newTxn['blockNumber'], i+1, \
 					datetime.datetime.strptime(str(newTxn['timestamp']), '%Y-%m-%d %H:%M:%S.%f'))
 		for i in range(len(myTxns), len(newTxns)):
 			newTxn = newTxns[i]
