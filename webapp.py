@@ -16,9 +16,11 @@ def main(argv):
     community_ip = "127.0.0.1"
     community_port = 5000
     sim = False
+    username, password = None, None
 
     try:
-        opts, args = getopt.getopt(argv, "h:p:s:ci:cp", ["hostname=", "port=", "sim=", "community_ip=", "community_port="])
+        opts, args = getopt.getopt(argv, "h:p:s:ci:cp:user:pass", \
+            ["hostname=", "port=", "sim=", "community_ip=", "community_port=", "username=", "password="])
     except Exception as e:
         print "Requires hostname and port number:", e
         sys.exit(2)
@@ -32,13 +34,17 @@ def main(argv):
             community_ip = arg
         elif opt in ("-cp", "--community_port"):
             community_port = int(arg)
+        elif opt in ("-user", "--username"):
+            username = arg
+        elif opt in ("-pass", "--password"):
+            password = arg
         elif opt in ("-sim", "--sim"):
             if arg == "t":
                 sim = True
             else:
                 sim = False
 
-    myself = Peer(ip_addr, port, sim, community_ip, community_port)
+    myself = Peer(ip_addr, port, sim, community_ip, community_port, username, password)
 
     app = Flask(__name__)
     api = Api(app)
@@ -66,7 +72,7 @@ def myconverter(o):
 class Txns(Resource):
     def get(self):
         try:
-            query = 'SELECT * FROM txns;'
+            query = 'SELECT * FROM txns ORDER BY txn_number ASC;'
             cur.execute(query)
             keys = [desc[0] for desc in cur.description]
             txns = cur.fetchall()
@@ -101,7 +107,7 @@ class Txns_id(Resource):
 class Blocks(Resource):
     def get(self):
         try:
-            query = 'SELECT * FROM blocks;'
+            query = 'SELECT * FROM blocks ORDER BY block_number ASC;'
             cur.execute(query)
             keys = [desc[0] for desc in cur.description]
             blocks = cur.fetchall()

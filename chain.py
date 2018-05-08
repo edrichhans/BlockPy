@@ -98,3 +98,21 @@ def writeTxnsSql(messages, conn, cur, blockNumber, txnNumber=None, timestamp=Non
             values += [json.dumps(i), blockNumber, str(timestamp)]
     cur.execute(insertSql, values)
     conn.commit()
+
+def updateChainSql(blockNumber, block, conn, cur):
+    createGenesisBlockSql(conn, cur)
+    updateSql = '''UPDATE blocks SET ("block_hash", "parent_hash", "block_txn", "timestamp", "txn_count")
+        = (%s, %s, %s, %s, %s) WHERE "block_number" = %s;'''
+    contents = block['contents']
+    cur.execute(updateSql, (block['blockHash'], contents['parentHash'], contents['blockTxn'], contents['timestamp'], contents['txnCount'], blockNumber))
+    conn.commit()
+    return blockNumber
+
+def updateTxnSql(txn, conn, cur, blockNumber, txnNumber, timestamp):
+    checkIfEmpty(conn, cur)
+    updateSql = '''UPDATE txns SET ("txn_content", "block_number", "timestamp")
+        = (%s, %s, %s) WHERE txn_number = %s'''
+    values = [json.dumps(txn), blockNumber, timestamp, txnNumber]
+    cur.execute(updateSql, values)
+    conn.commit()
+    return txnNumber

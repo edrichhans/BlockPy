@@ -1,6 +1,6 @@
 import json, socket, sys, getopt, select, datetime, time, os, errno
 from threading import Thread
-from main import create, addToChain, connect, disconnect, addToTxns, verifyTxn
+from main import create, addToChain, connect, disconnect, addToTxns, verifyTxn, updateChain, updateTxns
 from hashMe import hashMe
 from nacl.encoding import HexEncoder
 from nacl.signing import SigningKey, VerifyKey
@@ -14,7 +14,7 @@ import getpass, hashlib
 class Peer(Thread):
 	_FINISH = True
 
-	def __init__(self, ip_addr, port, sim=False, community_ip='127.0.0.1', community_port=5000):
+	def __init__(self, ip_addr, port, sim=False, community_ip='10.147.20.127', community_port=5000, username=None, password=None):
 		try:
 			os.makedirs('keys')
 		except OSError as e:
@@ -42,8 +42,9 @@ class Peer(Thread):
 				fpriv.write(self.privkey.encode(encoder=HexEncoder))
 				logger.info("Created private key")
 
-		if type(community_ip) == str and type(community_port) == int:
-			self.community_ip = (community_ip, community_port)
+		self.community_ip = (community_ip, community_port)
+		self.username = username
+		self.password = password
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port
@@ -84,7 +85,6 @@ class Peer(Thread):
 	def listening(self):
 		#listen up to 5 other peers
 		self.srcv.listen(5)
-
 		while self._FINISH:
 			read_sockets,write_sockets,error_sockets = select.select(self.peers.values(),[],[],1)
 			for socket in read_sockets:
@@ -282,6 +282,7 @@ class Peer(Thread):
 			if myChain[i] != newChain[i]:
 				logger.warn('Block #%s is different from broadcasted chain', i,
 					extra={'current': myChain[i], 'new': newChain[i]})
+				updateChain(i, newChain[i], self.conn, self.cur)
 		for i in range(len(myChain), len(newChain)):
 			# Add new entries
 			blockNumber = addToChain(newChain[i], self.conn, self.cur)
@@ -298,11 +299,14 @@ class Peer(Thread):
 			if myTxns[i] != newTxns[i]:
 				logger.warn('Transaction #%s is different from broadcasted txns', i,
 					extra={'current': myTxns[i], 'new': newTxns[i]})
+				newTxn = newTxns[i]
+				updateTxns(newTxn['content'], self.conn, self.cur, newTxn['blockNumber'], i, \
+					datetime.datetime.strptime(str(newTxn['timestamp']), '%Y-%m-%d %H:%M:%S.%f'))
 		for i in range(len(myTxns), len(newTxns)):
 			newTxn = newTxns[i]
 			# Add new entries
 			addToTxns([newTxn['content']], self.conn, self.cur, newTxn['blockNumber'], newTxn['txnNumber'], \
-				datetime.datetime.strptime(newTxn['timestamp'], '%Y-%m-%dT%H:%M:%S.%f'))
+				datetime.datetime.strptime(str(newTxn['timestamp']), '%Y-%m-%dT%H:%M:%S.%f'))
 
 		logger.info('Updated txns!',
 			extra={'NewTxns': newTxns[len(myTxns):]})
@@ -458,7 +462,10 @@ class Peer(Thread):
 		self.ack = False
 		return True
 
-	def getAuth(self,json_message = None): 
+	def getAuth(self,json_message = None):
+		username = self.username
+		password = self.password
+		hashed_password = None
 		if json_message is not None:
 			self.authenticated = json.loads(json_message['content'])
 			print self.authenticated
@@ -467,8 +474,12 @@ class Peer(Thread):
 			print "Login Successful"
 		else:
 			self.waitForAuth = True
-			username = ask_for_username()
-			hashed_password = hashlib.sha256(getpass.getpass()).hexdigest()
+			if not username:
+				username = ask_for_username()
+			if not password:
+				hashed_password = hashlib.sha256(getpass.getpass()).hexdigest()
+			else:
+				hashed_password = hashlib.sha256(password).hexdigest()
 			message = (username, hashed_password)
 			self.peers[self.community_ip].send(self.sendMessage(None, json.dumps(message), 5))
 
@@ -483,7 +494,7 @@ def main(argv):
 	#this is the default ip and port
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
-	ip_addr = "127.0.0.1"	# s.getsockname()[0]
+	ip_addr = "10.147.20.65"	# s.getsockname()[0]
 	port = 8000
 	sim = False
 

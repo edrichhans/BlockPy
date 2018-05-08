@@ -3,7 +3,7 @@ from sys import argv, exit
 from block import makeBlock, makeTxn, createMerkle
 from checking import checkChain, checkBlockValidity
 from hashMe import hashMe
-from chain import readChainSql, viewChainSql, writeChainSql, writeTxnsSql
+from chain import readChainSql, viewChainSql, writeChainSql, writeTxnsSql, updateChainSql, updateTxnSql
 from config import config
 from blockpy_logging import logger
 
@@ -80,6 +80,15 @@ def create(messages, conn, cur):
             # viewChainSql(chain)
     return newBlock, txnList
 
+def updateChain(block, newBlock, conn, cur):
+    print "Replacing block #%s", block
+    if newBlock:
+        blockNumber = updateChainSql(block, newBlock, conn, cur)
+        logger.info("blocks table updated")
+    else:
+        blockNumber = -1
+    return blockNumber
+
 def addToChain(newBlock, conn, cur):
     print 'Writing to Blockchain Table...\n'
     if newBlock:
@@ -88,6 +97,15 @@ def addToChain(newBlock, conn, cur):
     else:
         blockNumber = -1
     return blockNumber
+
+def updateTxns(newTxn, conn, cur, blockNumber, txnNumber, timestamp):
+    print "Replace txn #%s", txnNumber
+    if newTxn:
+        txnNumber = updateTxnSql(newTxn, conn, cur, blockNumber, txnNumber, timestamp)
+        logger.info('txn table updated')
+    else:
+        txnNumber = -1
+    return txnNumber
 
 def addToTxns(txns, conn, cur, blockNumber, txnNumber=None, timestamp=None):
     print 'Writing to Txns Table...\n'
