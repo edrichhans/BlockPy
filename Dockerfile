@@ -16,7 +16,7 @@ RUN pip install -r requirements-pip.txt
 #Copy the rest of the blockpy code
 COPY . /usr/src/app
 
-CMD [ "python", "./community_peer.py" ]
+CMD ["python", "./community_peer_sim.py"]
 
 
 
