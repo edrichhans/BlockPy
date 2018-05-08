@@ -1,27 +1,63 @@
-import psycopg2, sys, json, csv, datetime, unicodedata
+import psycopg2, sys, json, csv, datetime, unicodedata, getopt
 from config import config
 from peer import Peer
 from flask import Flask, request
 from flask_restful import Resource, Api, reqparse
-from flask.ext.jsonpify import jsonify
+from flask_jsonpify import jsonify
 from blockpy_logging import logger
 
 params = config()
 conn = psycopg2.connect(**params)
 cur = conn.cursor()
 
-ip_addr = '127.0.0.1'
-port = 3010
-myself = Peer(ip_addr, port, False)
+def main(argv):
+    ip_addr = "127.0.0.1"   # s.getsockname()[0]
+    port = 3010
+    community_ip = "127.0.0.1"
+    community_port = 5000
+    sim = False
 
-app = Flask(__name__)
-api = Api(app)
-logger.info('API started',
-    extra={'addr': ip_addr, 'port':port})
+    try:
+        opts, args = getopt.getopt(argv, "h:p:s:ci:cp", ["hostname=", "port=", "sim=", "community_ip=", "community_port="])
+    except Exception as e:
+        print "Requires hostname and port number:", e
+        sys.exit(2)
 
-parser = reqparse.RequestParser()
-parser.add_argument('txn')
-parser.add_argument('content')
+    for opt, arg in opts:
+        if opt in ("-h", "--hostname"):
+            ip_addr = arg
+        elif opt in ("-p", "--port"):
+            port = int(arg)
+        elif opt in ("-ci", "--community_ip"):
+            community_ip = arg
+        elif opt in ("-cp", "--community_port"):
+            community_port = int(arg)
+        elif opt in ("-sim", "--sim"):
+            if arg == "t":
+                sim = True
+            else:
+                sim = False
+
+    myself = Peer(ip_addr, port, sim, community_ip, community_port)
+
+    app = Flask(__name__)
+    api = Api(app)
+    logger.info('API started',
+        extra={'addr': ip_addr, 'port':port})
+
+    parser = reqparse.RequestParser()
+    parser.add_argument('txn')
+    parser.add_argument('content')
+
+    api.add_resource(Txns, '/txns')
+    api.add_resource(Txns_id, '/txns/<id>')
+    api.add_resource(Blocks, '/blocks')
+    api.add_resource(Blocks_id, '/blocks/<id>')
+    api.add_resource(Verify, '/verify')
+    api.add_resource(Insert, '/insert')
+    api.add_resource(GetPeers, '/peers')
+
+    return app
 
 def myconverter(o):
     if isinstance(o, datetime.datetime):
@@ -121,14 +157,6 @@ class GetPeers(Resource):
         logger.info('GET /peers')
         return jsonify(myself.getPeersAPI())
 
-api.add_resource(Txns, '/txns')
-api.add_resource(Txns_id, '/txns/<id>')
-api.add_resource(Blocks, '/blocks')
-api.add_resource(Blocks_id, '/blocks/<id>')
-api.add_resource(Verify, '/verify')
-api.add_resource(Insert, '/insert')
-api.add_resource(GetPeers, '/peers')
-
-
 if __name__ == '__main__':
+    app = main(sys.argv[1:])
     app.run(port='5002')
