@@ -9,36 +9,40 @@ from blockpy_logging import logger
 
 def connect():
     """ Connect to the PostgreSQL database server """
-    conn = None
-    try:
-        # read connection parameters
-        params = config()
- 
-        # connect to the PostgreSQL server
-        print 'Connecting to the PostgreSQL database...'
-        logger.info("Connecting to the PostgreSQL database...")
-        conn = psycopg2.connect(**params)
- 
-        # create a cursor
-        cur = conn.cursor()
-        
-        # execute a statement
-        print 'PostgreSQL database version:'
-        cur.execute('SELECT version()')
- 
-        # display the PostgreSQL database server version
-        db_version = cur.fetchone()
-        print(db_version)
-        logger.info("PostgreSQL database version: \n%s", db_version)
+    conn, cur = None, None
+    while 1:
+        try:
+            # read connection parameters
+            params = config()
 
-    except psycopg2.DatabaseError as error:
-        print error
-        logger.error("Database error", exc_info=True)
-    except Exception as error:
-        print error
-        logger.error("Exception error", exc_info=True)
-    finally:
-        return conn, cur
+            # connect to the PostgreSQL server
+            print 'Connecting to the PostgreSQL database...'
+            logger.info("Connecting to the PostgreSQL database...")
+            conn = psycopg2.connect(**params)
+
+            # create a cursor
+            cur = conn.cursor()
+            
+            # execute a statement
+            print 'PostgreSQL database version:'
+            cur.execute('SELECT version()')
+
+            # display the PostgreSQL database server version
+            db_version = cur.fetchone()
+            print(db_version)
+            logger.info("PostgreSQL database version: \n%s", db_version)
+            break
+
+        except psycopg2.DatabaseError as error:
+            print error, 'trying again1...'
+            logger.error("Database error", exc_info=True)
+            time.sleep(2)
+        except Exception as error:
+            print error, 'trying again2...'
+            logger.error("Exception error", exc_info=True)
+            time.sleep(2)
+
+    return conn, cur
 
 def disconnect(conn, cur):
     try:
