@@ -1,13 +1,18 @@
-web:
-    build: .
-    links:
-        - 'db'
-    ports:
-        - '8000:8000'
-    environment:
-        - 'DATABASE_HOST=db'
-        - 'DATABASE_NAME=blockpy'
-        - 'DATABASE_USER=postgres'
-        - 'DATABASE_PASSWORD=toor'
-db:
-    image: postgres:latest
+version: '3'
+services:
+    web:
+        build: .
+
+        # ports:
+        #     - '8000:8000'
+        
+        network_mode: 'host'
+        depends_on:
+            - db
+    db:
+        image: postgres:latest
+        environment:
+            - POSTGRES_DB=blockpy
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=toor
+        network_mode: 'host'

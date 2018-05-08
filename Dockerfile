@@ -3,7 +3,7 @@ FROM python:2.7
 
 ENV PYTHONUNBUFFERED=1
 
-EXPOSE 8000
+#EXPOSE 8000
 #Set working directory to /blockpy
 WORKDIR /usr/src/app
 
@@ -16,7 +16,7 @@ RUN pip install -r requirements-pip.txt
 #Copy the rest of the blockpy code
 COPY . /usr/src/app
 
-CMD [ "python", "./peer.py" ]
+CMD [ "python", "./community_peer.py" ]
 
 
 
