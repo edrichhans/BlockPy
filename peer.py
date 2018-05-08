@@ -12,10 +12,9 @@ from login import ask_for_username, ask_for_password
 import getpass, hashlib
 
 class Peer(Thread):
-	community_ip = ('127.0.0.1', 5000)
 	_FINISH = True
 
-	def __init__(self, ip_addr, port, sim=False):
+	def __init__(self, ip_addr, port, sim=False, community_ip='127.0.0.1', community_port=5000):
 		try:
 			os.makedirs('keys')
 		except OSError as e:
@@ -43,6 +42,8 @@ class Peer(Thread):
 				fpriv.write(self.privkey.encode(encoder=HexEncoder))
 				logger.info("Created private key")
 
+		if type(community_ip) == str and type(community_port) == int:
+			self.community_ip = (community_ip, community_port)
 		self.peers = {}
 		self.ip_addr = ip_addr
 		self.port = port

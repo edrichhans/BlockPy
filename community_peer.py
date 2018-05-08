@@ -348,7 +348,7 @@ def main(argv):
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
 	ip_addr = "127.0.0.1"#s.getsockname()[0]
-	port = 5000
+	port = 6000
 	sim = False
 
 	try:
