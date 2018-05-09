@@ -9,7 +9,9 @@ from blockpy_logging import logger
 params = config()
 conn = psycopg2.connect(**params)
 cur = conn.cursor()
-parser = None
+parser = reqparse.RequestParser()
+parser.add_argument('txn')
+parser.add_argument('content')
 
 def main(argv):
     ip_addr = "127.0.0.1"   # s.getsockname()[0]
@@ -51,10 +53,6 @@ def main(argv):
     api = Api(app)
     logger.info('API started',
         extra={'addr': ip_addr, 'port':port})
-
-    parser = reqparse.RequestParser()
-    parser.add_argument('txn')
-    parser.add_argument('content')
 
     api.add_resource(Txns, '/txns')
     api.add_resource(Txns_id, '/txns/<id>')
