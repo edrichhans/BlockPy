@@ -9,6 +9,7 @@ from blockpy_logging import logger
 params = config()
 conn = psycopg2.connect(**params)
 cur = conn.cursor()
+parser = None
 
 def main(argv):
     ip_addr = "127.0.0.1"   # s.getsockname()[0]
