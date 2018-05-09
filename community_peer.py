@@ -64,7 +64,7 @@ class Community_Peer(Thread):
 
 	def listening(self):
 		#listen up to 5 other peers
-		self.srcv.listen(5)
+		self.srcv.listen(10)
 
 		while self._FINISH:
 			read_sockets,write_sockets,error_sockets = select.select(self.peers.values(),[],[],1)

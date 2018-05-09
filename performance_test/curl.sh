@@ -1,4 +1,3 @@
-sleep 10s
 curl http://localhost:5002/insert -d 'content=asdf' -X POST -v
 sleep 1s
 curl http://localhost:5002/insert -d 'content=a' -X POST -v
