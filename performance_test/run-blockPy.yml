@@ -1,6 +1,6 @@
 ---
 - name: clone and install dependencies for BlockPy
-  hosts: test1
+  hosts: peers
   remote_user: event1
   become_user: event1
   become: yes
@@ -37,7 +37,7 @@
   - name: Run docker images
     become: yes
     become_method: enable
-    shell: docker-compose -f ~/blockpy/docker-compose.yml up -d
+    shell: docker-compose -f ~/blockpy/docker-compose.yml up
   
 
   

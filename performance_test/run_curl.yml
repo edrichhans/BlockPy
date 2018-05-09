@@ -1,0 +1,11 @@
+---
+- name: Fire messages!
+hosts: peers
+remote_user: event1
+become_user: event1
+become: yes
+
+  - name: Test curl
+    become: yes
+    become_method: enable
+    shell: bash curl.sh
