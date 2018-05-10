@@ -14,7 +14,7 @@ from nacl.encoding import HexEncoder
 from nacl.signing import SigningKey, VerifyKey
 from nacl.hash import sha256
 from uuid import uuid1
-from blockpy_logging import logger
+from blockpy_logging import logger, setFilename
 from collections import Counter
 from login import find_hashed_password_by_user, ask_for_username, ask_for_password, checkIfUsersExist, store_info, checkIfAdminExist, dropUsers
 import getpass
@@ -38,7 +38,9 @@ class Community_Peer(Thread):
 		self.potential_miners = {}
 		self.newBlock = ''
 		self.txnList = []
-		self.pendingBlocks = []		
+		self.pendingBlocks = []
+		global logger
+		logger = setFilename('community-peer.log')
 
 		#socket for receiving messages
 		self.srcv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -204,6 +206,8 @@ class Community_Peer(Thread):
 			addToTxns(self.txnList, self.conn, self.cur, blockNumber)
 			self.received_transaction_from = {}
 			self.pendingBlocks = []
+			logger.info('Updated tables',
+				extra={'blockNumber': blockNumber})
 
 			# broadcast chain
 			chain = readChainSql(self.conn, self.cur)
