@@ -78,6 +78,12 @@ class Peer(Thread):
 
 		self.lthread = Thread(target=self.listening)
 		self.lthread.start()
+
+		while(self.authenticated==False):
+			if self.waitForAuth == False:
+				self.getAuth()
+		self.getPeers()
+
 		if self.sim == False:
 			self.sthread = Thread(target=self.sending)
 			self.sthread.start()
@@ -314,11 +320,6 @@ class Peer(Thread):
 			extra={'NewTxns': newTxns[len(myTxns):]})
 
 	def sending(self):
-
-		while(self.authenticated==False):
-			if self.waitForAuth == False:
-				self.getAuth()
-		self.getPeers()
 
 		while self._FINISH:
 			command = raw_input("Enter command: ")
