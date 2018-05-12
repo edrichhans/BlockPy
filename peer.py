@@ -435,8 +435,8 @@ class Peer(Thread):
 
 	def sendToMiners(self, recpubkey=None, message=None):
 		begin = 0
-		# set ACK timeout to 1 second before resending
-		timeout = 1
+		# set ACK timeout to 3 seconds before resending
+		timeout = 3
 		expectedAck = hashMe(message)
 		while not self.ack == expectedAck:
 			logger.info('Sending transaction',
