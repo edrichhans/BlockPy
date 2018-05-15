@@ -111,7 +111,7 @@ class Peer(Thread):
 						if (message != ""):
 							# 1: waiting for transaction 		2: waiting for verifyBlock Phase
 							# 3: waiting for signedBlock Phase	4: waiting for distBlockchain
-							if json.loads(message):
+							try:
 								json_message = json.loads(message)
 								print "\n" + str(socket.getpeername()) + ": category " + json_message['_category']
 								category = str(json_message['_category'])
@@ -185,6 +185,9 @@ class Peer(Thread):
 
 								else:
 									raise ValueError('No such category')
+							except:
+								logger.error('JSON.loads message error')
+								print 'JSON.loads message error'
 						else:
 							print 'End of message.'
 
