@@ -9,3 +9,4 @@ keys/
 database.ini
 logs/*.log
 ./test*.py
+*.retry

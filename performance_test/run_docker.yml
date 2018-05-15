@@ -1,0 +1,15 @@
+---
+- name: Build and run docker images
+  hosts: peers
+  remote_user: event1
+  become_user: event1
+  become: yes
+  tasks:
+  - name: Shutdown docker containers
+    shell: 'docker-compose -f ~/blockpy/docker-compose.yml down'
+
+  - name: Build docker images
+    shell: 'docker-compose -f ~/blockpy/docker-compose.yml build'
+ 
+  - name: Run docker images
+    shell: 'docker-compose -f ~/blockpy/docker-compose.yml up'
