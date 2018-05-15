@@ -1,0 +1,14 @@
+---
+- name: Kill them all!
+  hosts: all
+  remote_user: event1
+  become_user: event1
+  become: yes
+  vars:
+    ansible_password: criticallysound
+    ansible_become: yes
+    ansible_become_method: enable
+
+  tasks: 
+  - name: Kill db
+    shell: 'sudo fuser -k 5432/tcp'
