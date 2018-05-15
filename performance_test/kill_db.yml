@@ -1,5 +1,5 @@
 ---
-- name: Kill them all!
+- name: Kill Database ports!
   hosts: all
   remote_user: event1
   become_user: event1

@@ -9,6 +9,7 @@ services:
         network_mode: 'host'
         depends_on:
             - db
+        restart: always
     db:
         image: postgres:latest
         environment:
