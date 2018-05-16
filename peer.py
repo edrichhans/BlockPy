@@ -84,7 +84,7 @@ class Peer(Thread):
 
 	def listening(self):
 		#listen up to 5 other peers
-		self.srcv.listen(5)
+		self.srcv.listen(10)
 		while self._FINISH:
 			read_sockets,write_sockets,error_sockets = select.select(self.peers.values(),[],[],1)
 			for socket in read_sockets:
@@ -237,6 +237,8 @@ class Peer(Thread):
 				if len(self.messages) >= self.max_txns:
 					# create new block
 					self.newBlock, self.txnList = create(self.messages, self.conn, self.cur)
+					logger.info('Block generated',
+						extra={'blockHash': self.newBlock['blockHash'], 'txnList': self.txnList})
 					packet = {'block': self.newBlock, 'txnList': str(self.txnList), 'contributing': str(self.received_transaction_from_reverse)}
 					self.peers[self.community_ip].send(self.sendMessage(None,json.dumps(packet), 9))
 					logger.info('Block sent to community peer for collating')
@@ -258,7 +260,7 @@ class Peer(Thread):
 		# send message
 		self.peers[peer].send(self.sendMessage(None, (signature.encode('base64'), nonce), 3))
 		logger.info("Signed block sent",
-			extra={"addr": peer[0], "port": peer[1]})
+			extra={"addr": peer[0], "port": peer[1], "blockHash": block['blockHash']})
 		print 'Signed block sent to: ', peer[0], peer[1]
 
 	def updateTables(self, json_message):
@@ -430,6 +432,9 @@ class Peer(Thread):
 		# set ACK timeout to 3 seconds before resending
 		timeout = 3
 		while not self.ack:
+			logger.info('Sending transaction',
+				extra={'contents': message})
+			print 'Sending transaction'
 			begin = time.time()
 			raw_string = self.sendMessage(recpubkey,message,1)
 			for miner in self.miners:
@@ -455,8 +460,6 @@ class Peer(Thread):
 				if self.ack:
 					break
 				time.sleep(0.1)
-			logger.info('Sending transaction')
-			print 'Sending transaction'
 
 		logger.info('ACK received')
 		self.ack = False
