@@ -9,4 +9,4 @@
   - name: Test curl
     become: yes
     become_method: enable
-    shell: bash /home/event1/blockpy/performance_test/curl-0.01.sh
+    shell: bash /home/event1/blockpy/performance_test/curl-random.sh
