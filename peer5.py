@@ -14,7 +14,7 @@ import getpass, hashlib
 class Peer(Thread):
 	_FINISH = True
 
-	def __init__(self, ip_addr='127.0.0.1', port=8000, sim=False, community_ip='127.0.0.1', community_port=5000, username=None, password=None):
+	def __init__(self, ip_addr='127.0.0.1', port=8005, sim=False, community_ip='127.0.0.1', community_port=5000, username=None, password=None):
 		try:
 			os.makedirs('keys')
 		except OSError as e:
@@ -22,23 +22,23 @@ class Peer(Thread):
 				raise
 
 		try:
-			with open("keys/privkey.txt","r") as fpriv:
+			with open("keys/privkey5.txt","r") as fpriv:
 				key = HexEncoder.decode(fpriv.read())
 				self.privkey = SigningKey(key)
 
-			with open("keys/pubkey.txt","r") as fpub:
+			with open("keys/pubkey5.txt","r") as fpub:
 				key = HexEncoder.decode(fpub.read())
 				self.pubkey = VerifyKey(key)
 		except:
 			self.privkey = SigningKey.generate()
 			self.pubkey = self.privkey.verify_key
 
-			with open("keys/pubkey.txt","w") as fpub:
+			with open("keys/pubkey5.txt","w") as fpub:
 				fpub.write(self.pubkey.encode(encoder=HexEncoder))
 				logger.info("Created public key",
 					extra={"publickey": self.pubkey.encode(encoder=HexEncoder)})
 
-			with open("keys/privkey.txt","w") as fpriv:
+			with open("keys/privkey5.txt","w") as fpriv:
 				fpriv.write(self.privkey.encode(encoder=HexEncoder))
 				logger.info("Created private key")
 
@@ -482,6 +482,7 @@ class Peer(Thread):
 		print 'Valid ACK received:', self.ack
 		logger.info('Valid ACK received',
 			extra={'ack': self.ack})
+		self.ack = False
 		return True
 
 	def getAuth(self,json_message = None):
@@ -517,7 +518,7 @@ def main(argv):
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
 	ip_addr = "127.0.0.1"	# s.getsockname()[0]
-	port = 8000
+	port = 8005
 	sim = False
 
 	try:

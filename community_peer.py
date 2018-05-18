@@ -54,9 +54,9 @@ class Community_Peer(Thread):
 		checkIfUsersExist(self.conn, self.cur)
 		checkIfAdminExist(self.conn, self.cur)
 		
-		while find_hashed_password_by_user(ask_for_username(), getpass.getpass(), self.conn, self.cur, 0) != True:
-			print "Username or Password is Incorrect. Please try again."
-		print "Login Successful"
+		# while find_hashed_password_by_user(ask_for_username(), getpass.getpass(), self.conn, self.cur, 0) != True:
+		# 	print "Username or Password is Incorrect. Please try again."
+		# print "Login Successful"
 		
 		self.lthread = Thread(target=self.listening)
 		self.lthread.start()
