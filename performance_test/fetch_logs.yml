@@ -1,0 +1,17 @@
+---
+- name: Fetching logs....
+  hosts: all
+  remote_user: event1
+  become_user: event1
+  become: yes
+  
+  tasks: 
+  - name: Copy logs from remote docker.
+    become: yes
+    become_method: enable
+    shell: docker cp blockpy_web_1:/usr/src/app/logs/. /home/event1/blockpy/logs/
+  - name: Fetch logs from remote to control node.
+    fetch:
+      src: /home/event1/blockpy/logs/peer.log
+      dest: /home/event1/control-node/logs/log-{{ inventory_hostname }}.log
+      flat: yes

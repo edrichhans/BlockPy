@@ -14,7 +14,7 @@ import getpass, hashlib
 class Peer(Thread):
 	_FINISH = True
 
-	def __init__(self, ip_addr, port, sim=False, community_ip='10.147.20.127', community_port=5000, username=None, password=None):
+	def __init__(self, ip_addr, port, sim=False, community_ip='127.0.0.1', community_port=5000, username=None, password=None):
 		try:
 			os.makedirs('keys')
 		except OSError as e:
@@ -109,20 +109,20 @@ class Peer(Thread):
 					recv_buffer_split = recv_buffer.split('\0')
 					for message in recv_buffer_split:
 						if (message != ""):
-							# 1: waiting for transaction 		2: waiting for verifyBlock Phase
-							# 3: waiting for signedBlock Phase	4: waiting for distBlockchain
-							try:
+							# 1: waiting for transaction        2: waiting for verifyBlock Phase
+							# 3: waiting for signedBlock Phase  4: waiting for distBlockchain
+							if json.loads(message):
 								json_message = json.loads(message)
 								print "\n" + str(socket.getpeername()) + ": category " + json_message['_category']
 								category = str(json_message['_category'])
 								logger.info("Message received",
 									extra={"owner":str(socket.getpeername()), "category": category, "received_message": message})
 
-								if category == str(1):	#waiting for transaction
+								if category == str(1):  #waiting for transaction
 									json_message['content'] = self.public_key_list[socket.getpeername()].verify(json_message['content'].decode('base64'))
 									self.waitForTxn(json_message, socket)
 
-								elif category == str(2):	# verifying block
+								elif category == str(2):    # verifying block
 									self.verifyBlock(socket, message)
 
 								elif category == str(5):
@@ -137,7 +137,7 @@ class Peer(Thread):
 										extra={"miners": self.miners})
 									print 'Current miners are set to: ', self.miners
 
-								elif category == str(6):	#peer discovery - update list of public keys
+								elif category == str(6):    #peer discovery - update list of public keys
 									spec_peer = [] 
 									templist = json.loads(json_message['content'])
 									
@@ -185,9 +185,6 @@ class Peer(Thread):
 
 								else:
 									raise ValueError('No such category')
-							except:
-								logger.error('JSON.loads message error')
-								print 'JSON.loads message error'
 						else:
 							print 'End of message.'
 
@@ -456,7 +453,7 @@ class Peer(Thread):
 				else:
 					if not self.peers[miner].send(raw_string):
 						return False
-			#Handling if self is miner, after sending to other miners, trigger waitForTxn			
+			#Handling if self is miner, after sending to other miners, trigger waitForTxn           
 			if self.is_miner:
 				raw_string = self.sendMessage(self.pubkey.encode(HexEncoder),message,1)[:-1] #remove '\0' delimeter
 				json_message = json.loads(raw_string)
@@ -465,7 +462,7 @@ class Peer(Thread):
 				json_message['content'] = hashMe(message)
 				logger.info("Mining message from self",
 					extra={"owner":str((self.ip_addr,self.port)), "category": category, "received_message": raw_input})
-				if category == str(1):	#waiting for transaction
+				if category == str(1):  #waiting for transaction
 					# send to self
 					self.waitForTxn(json_message)
 			while time.time() - begin < timeout:
@@ -516,8 +513,8 @@ def main(argv):
 	#this is the default ip and port
 	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	#s.connect(("8.8.8.8", 80))
-	ip_addr = "10.147.20.65"	# s.getsockname()[0]
-	port = 8000
+	ip_addr = "127.0.0.1"   # s.getsockname()[0]
+	port = 3000
 	sim = False
 
 	try:

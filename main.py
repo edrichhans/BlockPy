@@ -63,11 +63,6 @@ def create(messages, conn, cur):
     # viewChainSql(chain)
     txnList = []
     for txn in messages:
-        try:
-            txn = json.loads(txn)
-        except Exception as error:
-            print "Json loads error", error
-            logger.error("Json loads error", exc_info=True)
         txn['content'] = json.dumps(txn['content'])
         txnList.append(makeTxn(txn['_owner'], txn['_recipient'], txn['content']))
     newBlock = makeBlock(txnList, chain)

@@ -7,5 +7,6 @@ venv/
 .vscode/settings.json
 keys/
 database.ini
-logs/
+logs/*.log
 ./test*.py
+*.retry

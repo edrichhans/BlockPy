@@ -19,7 +19,7 @@ def main(argv):
     port = 3010
     community_ip = "127.0.0.1"
     community_port = 5000
-    sim = False
+    sim = True
     username, password = None, None
     global myself
 

@@ -1,0 +1,14 @@
+---
+- name: Kill Python Process!
+  hosts: all
+  remote_user: event1
+  become_user: event1
+  become: yes
+  vars:
+    ansible_password: criticallysound
+    ansible_become: yes
+    ansible_become_method: enable
+
+  tasks: 
+  - name: Test curl
+    shell: 'sudo -S killall -9 python'
