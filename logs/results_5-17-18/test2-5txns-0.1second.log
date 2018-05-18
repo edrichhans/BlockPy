@@ -1,0 +1,259 @@
+============================== PEER 30 ==============================
+Sending to miners:	2018-05-17 11:59:47 	a
+ACK received	2018-05-17 11:59:47
+Sending to miners:	2018-05-17 11:59:47 	b
+Signed block sent:	2018-05-17 11:59:48 	504d4ff8a3...
+ACK sent to ('10.147.72.31', 8000) 2018-05-17 11:59:50
+ACK sent to ('10.147.72.35', 8000) 2018-05-17 11:59:50
+ACK sent to ('10.147.72.34', 8000) 2018-05-17 11:59:50
+Sending to miners:	2018-05-17 11:59:50 	b
+ACK sent to self 2018-05-17 11:59:50
+Block generated:	2018-05-17 11:59:50 	cb4199dd60...
+Sending to miners:	2018-05-17 11:59:50 	c
+Signed block sent:	2018-05-17 11:59:51 	cb4199dd60...
+Sending to miners:	2018-05-17 11:59:53 	c
+ACK sent to self 2018-05-17 11:59:53
+ACK sent to ('10.147.72.31', 8000) 2018-05-17 11:59:53
+Sending to miners:	2018-05-17 11:59:54 	d
+ACK sent to self 2018-05-17 11:59:54
+ACK sent to ('10.147.72.35', 8000) 2018-05-17 11:59:54
+Block generated:	2018-05-17 11:59:54 	93f5600b5d...
+Sending to miners:	2018-05-17 11:59:54 	e
+Sending to miners:	2018-05-17 11:59:57 	e
+ACK received	2018-05-17 11:59:57
+Signed block sent:	2018-05-17 11:59:57 	838cb5d8bc...
+ACK sent to ('10.147.72.31', 8000) 2018-05-17 12:00:00
+ACK sent to ('10.147.72.29', 35024) 2018-05-17 12:00:00
+ACK sent to ('10.147.72.35', 8000) 2018-05-17 12:00:00
+ACK sent to ('10.147.72.34', 8000) 2018-05-17 12:00:00
+Block generated:	2018-05-17 12:00:00 	581a3ee68a...
+============================== PEER 31 ==============================
+Sending to miners:	2018-05-17 11:59:47 	a
+Sending to miners:	2018-05-17 11:59:50 	a
+ACK received	2018-05-17 11:59:50
+ACK received	2018-05-17 11:59:50
+Sending to miners:	2018-05-17 11:59:50 	b
+Signed block sent:	2018-05-17 11:59:50 	cb4199dd60...
+Sending to miners:	2018-05-17 11:59:53 	b
+ACK sent to self 2018-05-17 11:59:53
+Sending to miners:	2018-05-17 11:59:53 	c
+ACK sent to self 2018-05-17 11:59:53
+ACK sent to ('10.147.72.35', 8000) 2018-05-17 11:59:53
+Sending to miners:	2018-05-17 11:59:53 	d
+ACK sent to self 2018-05-17 11:59:53
+Block generated:	2018-05-17 11:59:53 	e9c9cc76b5...
+ACK received	2018-05-17 11:59:53
+Sending to miners:	2018-05-17 11:59:53 	e
+Signed block sent:	2018-05-17 11:59:54 	e9c9cc76b5...
+Sending to miners:	2018-05-17 11:59:56 	e
+Sending to miners:	2018-05-17 11:59:59 	e
+ACK received	2018-05-17 12:00:00
+ACK received	2018-05-17 12:00:00
+Signed block sent:	2018-05-17 12:00:00 	6c71388f77...
+ACK sent to ('10.147.72.36', 8000) 2018-05-17 12:00:03
+ACK sent to ('10.147.72.37', 8000) 2018-05-17 12:00:03
+ACK sent to ('10.147.72.35', 8000) 2018-05-17 12:00:03
+ACK sent to ('10.147.72.36', 8000) 2018-05-17 12:00:03
+Block generated:	2018-05-17 12:00:03 	9401d756d5...
+============================== PEER 32 ==============================
+============================== PEER 29 ==============================
+Sending to miners:	2018-05-17 11:59:46 	a
+ACK received	2018-05-17 11:59:47
+Sending to miners:	2018-05-17 11:59:47 	b
+Signed block sent:	2018-05-17 11:59:47 	504d4ff8a3...
+ACK sent to ('10.147.72.31', 8000) 2018-05-17 11:59:50
+ACK sent to ('10.147.72.35', 8000) 2018-05-17 11:59:50
+ACK sent to ('10.147.72.34', 8000) 2018-05-17 11:59:50
+Sending to miners:	2018-05-17 11:59:50 	b
+ACK sent to self 2018-05-17 11:59:50
+Block generated:	2018-05-17 11:59:50 	88f579df8e...
+Sending to miners:	2018-05-17 11:59:50 	c
+Sending to miners:	2018-05-17 11:59:53 	c
+Sending to miners:	2018-05-17 11:59:56 	c
+ACK received	2018-05-17 11:59:56
+Sending to miners:	2018-05-17 11:59:56 	d
+Signed block sent:	2018-05-17 11:59:57 	838cb5d8bc...
+ACK sent to ('10.147.72.31', 8000) 2018-05-17 11:59:59
+Sending to miners:	2018-05-17 11:59:59 	d
+ACK sent to self 2018-05-17 11:59:59
+Sending to miners:	2018-05-17 11:59:59 	e
+ACK sent to self 2018-05-17 11:59:59
+ACK sent to ('10.147.72.35', 8000) 2018-05-17 12:00:00
+Block generated:	2018-05-17 12:00:00 	6c71388f77...
+ACK received	2018-05-17 12:00:00
+Signed block sent:	2018-05-17 12:00:00 	6c71388f77...
+ACK sent to ('10.147.72.36', 8000) 2018-05-17 12:00:03
+ACK sent to ('10.147.72.37', 8000) 2018-05-17 12:00:03
+ACK sent to ('10.147.72.35', 8000) 2018-05-17 12:00:03
+ACK sent to ('10.147.72.36', 8000) 2018-05-17 12:00:03
+Block generated:	2018-05-17 12:00:03 	93c7f09050...
+============================== PEER 34 ==============================
+Sending to miners:	2018-05-17 11:59:40 	a
+ACK sent to self 2018-05-17 11:59:40
+ACK sent to ('10.147.72.30', 54767) 2018-05-17 11:59:40
+Sending to miners:	2018-05-17 11:59:40 	b
+ACK sent to self 2018-05-17 11:59:40
+ACK sent to ('10.147.72.29', 40546) 2018-05-17 11:59:40
+Sending to miners:	2018-05-17 11:59:40 	c
+Block generated:	2018-05-17 11:59:40 	504d4ff8a3...
+Signed block sent:	2018-05-17 11:59:41 	504d4ff8a3...
+Sending to miners:	2018-05-17 11:59:43 	c
+ACK received	2018-05-17 11:59:43
+ACK received	2018-05-17 11:59:43
+Sending to miners:	2018-05-17 11:59:43 	d
+Signed block sent:	2018-05-17 11:59:44 	cb4199dd60...
+Sending to miners:	2018-05-17 11:59:46 	d
+Sending to miners:	2018-05-17 11:59:50 	d
+ACK received	2018-05-17 11:59:50
+Sending to miners:	2018-05-17 11:59:50 	e
+Signed block sent:	2018-05-17 11:59:50 	838cb5d8bc...
+Sending to miners:	2018-05-17 11:59:53 	e
+ACK received	2018-05-17 11:59:53
+============================== PEER 35 ==============================
+Sending to miners:	2018-05-17 11:59:46 	a
+Sending to miners:	2018-05-17 11:59:49 	a
+ACK received	2018-05-17 11:59:49
+ACK received	2018-05-17 11:59:49
+Sending to miners:	2018-05-17 11:59:50 	b
+Signed block sent:	2018-05-17 11:59:50 	cb4199dd60...
+Sending to miners:	2018-05-17 11:59:53 	b
+ACK received	2018-05-17 11:59:53
+ACK received	2018-05-17 11:59:53
+Sending to miners:	2018-05-17 11:59:53 	c
+Signed block sent:	2018-05-17 11:59:53 	e9c9cc76b5...
+ACK sent to ('10.147.72.29', 38739) 2018-05-17 11:59:56
+ACK sent to ('10.147.72.34', 8000) 2018-05-17 11:59:56
+ACK sent to ('10.147.72.30', 43676) 2018-05-17 11:59:56
+Sending to miners:	2018-05-17 11:59:56 	c
+ACK sent to self 2018-05-17 11:59:56
+Block generated:	2018-05-17 11:59:56 	838cb5d8bc...
+Sending to miners:	2018-05-17 11:59:56 	d
+Signed block sent:	2018-05-17 11:59:56 	838cb5d8bc...
+Sending to miners:	2018-05-17 11:59:59 	d
+ACK received	2018-05-17 11:59:59
+ACK received	2018-05-17 11:59:59
+Sending to miners:	2018-05-17 12:00:00 	e
+Signed block sent:	2018-05-17 12:00:00 	6c71388f77...
+Sending to miners:	2018-05-17 12:00:03 	e
+ACK received	2018-05-17 12:00:03
+ACK received	2018-05-17 12:00:03
+Signed block sent:	2018-05-17 12:00:03 	9401d756d5...
+ACK sent to ('10.147.72.37', 33205) 2018-05-17 12:00:06
+ACK sent to ('10.147.72.36', 48130) 2018-05-17 12:00:06
+ACK sent to ('10.147.72.37', 33205) 2018-05-17 12:00:06
+ACK sent to ('10.147.72.36', 48130) 2018-05-17 12:00:07
+Block generated:	2018-05-17 12:00:07 	931002ecbe...
+============================== PEER 36 ==============================
+Sending to miners:	2018-05-17 11:59:40 	a
+Sending to miners:	2018-05-17 11:59:43 	a
+Sending to miners:	2018-05-17 11:59:46 	a
+ACK received	2018-05-17 11:59:46
+ACK received	2018-05-17 11:59:46
+Sending to miners:	2018-05-17 11:59:46 	b
+ACK received	2018-05-17 11:59:46
+ACK received	2018-05-17 11:59:46
+Signed block sent:	2018-05-17 11:59:46 	9401d756d5...
+Sending to miners:	2018-05-17 11:59:46 	c
+ACK sent to ('10.147.72.37', 51322) 2018-05-17 11:59:49
+Sending to miners:	2018-05-17 11:59:49 	c
+ACK sent to self 2018-05-17 11:59:49
+Sending to miners:	2018-05-17 11:59:50 	d
+ACK sent to self 2018-05-17 11:59:50
+ACK sent to ('10.147.72.37', 51322) 2018-05-17 11:59:50
+Block generated:	2018-05-17 11:59:50 	cdcdbbb720...
+ACK received	2018-05-17 11:59:50
+Sending to miners:	2018-05-17 11:59:50 	e
+ACK received	2018-05-17 11:59:50
+Signed block sent:	2018-05-17 11:59:50 	cdcdbbb720...
+Sending to miners:	2018-05-17 11:59:53 	e
+ACK sent to self 2018-05-17 11:59:53
+ACK sent to ('10.147.72.37', 51322) 2018-05-17 11:59:53
+ACK sent to ('10.147.72.37', 51322) 2018-05-17 11:59:53
+============================== PEER 37 ==============================
+Sending to miners:	2018-05-17 12:00:05 	a
+Sending to miners:	2018-05-17 12:00:08 	a
+ACK received	2018-05-17 12:00:09
+ACK received	2018-05-17 12:00:09
+Sending to miners:	2018-05-17 12:00:09 	b
+Signed block sent:	2018-05-17 12:00:09 	9401d756d5...
+Sending to miners:	2018-05-17 12:00:12 	b
+ACK received	2018-05-17 12:00:12
+ACK received	2018-05-17 12:00:12
+Sending to miners:	2018-05-17 12:00:12 	c
+ACK received	2018-05-17 12:00:13
+ACK received	2018-05-17 12:00:13
+Sending to miners:	2018-05-17 12:00:13 	d
+Signed block sent:	2018-05-17 12:00:13 	cdcdbbb720...
+Sending to miners:	2018-05-17 12:00:16 	d
+ACK received	2018-05-17 12:00:16
+Sending to miners:	2018-05-17 12:00:16 	e
+ACK received	2018-05-17 12:00:16
+============================== COMMUNITY ==============================
+Returned Block:	2018-05-17 11:59:50
+Returned Block:	2018-05-17 11:59:50
+Returned Block:	2018-05-17 11:59:50
+Sig Verified:	2018-05-17 11:59:50 	504d4ff8a3...
+Sig Verified:	2018-05-17 11:59:50 	504d4ff8a3...
+Sig Verified:	2018-05-17 11:59:50 	504d4ff8a3...
+Updated tables:	2018-05-17 11:59:50 	Block # 2
+Broadcasted:	2018-05-17 11:59:50
+Updated Miner:	2018-05-17 11:59:50 	[u'10.147.72.30', 8000]
+Updated Miner:	2018-05-17 11:59:50 	[u'10.147.72.29', 8000]
+Returned Block:	2018-05-17 11:59:53
+Returned Block:	2018-05-17 11:59:53
+Returned Block:	2018-05-17 11:59:53
+Returned Block:	2018-05-17 11:59:53
+Sig Verified:	2018-05-17 11:59:53 	cb4199dd60...
+Sig Verified:	2018-05-17 11:59:53 	cb4199dd60...
+Sig Verified:	2018-05-17 11:59:53 	cb4199dd60...
+Sig Verified:	2018-05-17 11:59:53 	cb4199dd60...
+Updated tables:	2018-05-17 11:59:53 	Block # 3
+Broadcasted:	2018-05-17 11:59:53
+Updated Miner:	2018-05-17 11:59:53 	[u'10.147.72.30', 8000]
+Updated Miner:	2018-05-17 11:59:53 	[u'10.147.72.31', 8000]
+Returned Block:	2018-05-17 11:59:56
+Returned Block:	2018-05-17 11:59:56
+Sig Verified:	2018-05-17 11:59:56 	e9c9cc76b5...
+Sig Verified:	2018-05-17 11:59:57 	e9c9cc76b5...
+Updated tables:	2018-05-17 11:59:57 	Block # 4
+Broadcasted:	2018-05-17 11:59:57
+Updated Miner:	2018-05-17 11:59:57 	[u'10.147.72.35', 8000]
+Returned Block:	2018-05-17 11:59:59
+Returned Block:	2018-05-17 11:59:59
+Returned Block:	2018-05-17 11:59:59
+Returned Block:	2018-05-17 11:59:59
+Sig Verified:	2018-05-17 11:59:59 	838cb5d8bc...
+Sig Verified:	2018-05-17 12:00:00 	838cb5d8bc...
+Sig Verified:	2018-05-17 12:00:00 	838cb5d8bc...
+Sig Verified:	2018-05-17 12:00:00 	838cb5d8bc...
+Updated tables:	2018-05-17 12:00:00 	Block # 5
+Broadcasted:	2018-05-17 12:00:00
+Updated Miner:	2018-05-17 12:00:00 	[u'10.147.72.29', 8000]
+Updated Miner:	2018-05-17 12:00:00 	[u'10.147.72.30', 8000]
+Returned Block:	2018-05-17 12:00:03
+Returned Block:	2018-05-17 12:00:03
+Returned Block:	2018-05-17 12:00:03
+Sig Verified:	2018-05-17 12:00:03 	6c71388f77...
+Sig Verified:	2018-05-17 12:00:03 	6c71388f77...
+Sig Verified:	2018-05-17 12:00:03 	6c71388f77...
+Updated tables:	2018-05-17 12:00:03 	Block # 6
+Broadcasted:	2018-05-17 12:00:03
+Updated Miner:	2018-05-17 12:00:03 	[u'10.147.72.29', 8000]
+Updated Miner:	2018-05-17 12:00:03 	[u'10.147.72.31', 8000]
+Returned Block:	2018-05-17 12:00:06
+Returned Block:	2018-05-17 12:00:06
+Returned Block:	2018-05-17 12:00:06
+Sig Verified:	2018-05-17 12:00:07 	9401d756d5...
+Sig Verified:	2018-05-17 12:00:07 	9401d756d5...
+Sig Verified:	2018-05-17 12:00:07 	9401d756d5...
+Updated tables:	2018-05-17 12:00:07 	Block # 7
+Broadcasted:	2018-05-17 12:00:07
+Updated Miner:	2018-05-17 12:00:07 	[u'10.147.72.36', 8000]
+Updated Miner:	2018-05-17 12:00:07 	[u'10.147.72.35', 8000]
+Returned Block:	2018-05-17 12:00:10
+Returned Block:	2018-05-17 12:00:10
+Sig Verified:	2018-05-17 12:00:10 	cdcdbbb720...
+Sig Verified:	2018-05-17 12:00:10 	cdcdbbb720...
+Updated tables:	2018-05-17 12:00:10 	Block # 8
+Broadcasted:	2018-05-17 12:00:10
+Updated Miner:	2018-05-17 12:00:10 	[u'10.147.72.36', 8000]
