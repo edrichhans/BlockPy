@@ -37,4 +37,4 @@ typing==3.6.2
 u-msgpack-python==2.4.1
 urllib3==1.22
 websocket-client==0.44.0
-Werkzeug==0.12.2
+Werkzeug==0.15.3
