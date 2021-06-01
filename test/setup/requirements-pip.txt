@@ -35,6 +35,6 @@ shellescape==3.4.1
 six==1.11.0
 typing==3.6.2
 u-msgpack-python==2.4.1
-urllib3==1.22
+urllib3==1.26.5
 websocket-client==0.44.0
 Werkzeug==0.12.2
